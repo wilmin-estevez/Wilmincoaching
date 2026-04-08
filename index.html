@@ -400,6 +400,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
     <button class="ntab" onclick="showTab('t5')">Mensajes</button>
   </div>
   <div class="hdr-r">
+    <span id="sync-ind" style="font-size:10px;color:var(--gy);margin-right:4px">☁️ —</span>
     <button class="btn b-dk b-sm" onclick="backupData()">💾 Backup</button>
     <button class="btn b-dk b-sm" onclick="restoreData()">📂 Restaurar</button>
     <button class="btn b-or b-sm" onclick="abrirModalCliente()">+ Nuevo asesorado</button>
@@ -893,7 +894,9 @@ function cargar() {
   } catch(e) { clientes=[]; pagos=[]; mensajes=mensajesDefault(); rutinas=[]; }
 }
 function guardarTodo() {
-  localStorage.setItem(KEY, JSON.stringify({clientes:clientes, pagos:pagos, mensajes:mensajes, rutinas:rutinas}));
+  var data = {clientes:clientes,pagos:pagos,mensajes:mensajes,rutinas:rutinas,_t:new Date().toISOString()};
+  localStorage.setItem(KEY, JSON.stringify(data));
+  syncNube();
 }
 function backupData() {
   var a = document.createElement('a');
@@ -921,6 +924,89 @@ function restoreData() {
     reader.readAsText(file);
   };
   inp.click();
+}
+
+/* ══════════════════════════════════════════════════
+   SINCRONIZACIÓN EN LA NUBE
+══════════════════════════════════════════════════ */
+var _sOwner='wilmin-estevez',_sRepo='Wilmincoaching',_sData='data/sync.json',_sSes='data/session.json';
+var _sId=Math.random().toString(36).substr(2,9), _sTimer=null;
+
+function _ghReq(path,opts){
+  var tk=(localStorage.getItem('we_gh_token')||'').trim();
+  if(!tk) return Promise.reject('no-token');
+  return fetch('https://api.github.com/repos/'+_sOwner+'/'+_sRepo+'/contents/'+path,
+    Object.assign({headers:{'Authorization':'token '+tk,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'}},opts||{}));
+}
+function _ghGet(path){return _ghReq(path).then(function(r){return r.status===404?null:r.ok?r.json():null;}).catch(function(){return null;});}
+function _ghPut(path,data,sha){
+  var b64=btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  var body={message:'sync',content:b64}; if(sha) body.sha=sha;
+  return _ghReq(path,{method:'PUT',body:JSON.stringify(body)}).catch(function(){});
+}
+function _syncInd(txt,color){var el=ge('sync-ind');if(el){el.textContent=txt;el.style.color=color||'var(--gy)';}}
+
+function syncNube(){
+  clearTimeout(_sTimer);
+  _sTimer=setTimeout(function(){
+    _syncInd('☁️ Guardando...','var(--yw)');
+    var data={clientes:clientes,pagos:pagos,mensajes:mensajes,rutinas:rutinas,_t:new Date().toISOString(),_id:_sId};
+    _ghGet(_sData).then(function(f){
+      return _ghPut(_sData,data,f?f.sha:null);
+    }).then(function(r){
+      _syncInd(r?'☁️ Guardado ✓':'☁️ Sin sync', r?'var(--gn)':'var(--gy)');
+    }).catch(function(){_syncInd('☁️ Sin sync','var(--gy)');});
+  },3000);
+}
+
+function cargarDesdeNube(cb){
+  var tk=(localStorage.getItem('we_gh_token')||'').trim();
+  if(!tk){cb(false);return;}
+  _syncInd('☁️ Sincronizando...','var(--yw)');
+  _ghGet(_sData).then(function(f){
+    if(!f){_syncInd('☁️ —','var(--gy)');cb(false);return;}
+    var d=JSON.parse(atob(f.content.replace(/\n/g,'')));
+    var nubeT=new Date(d._t||0);
+    var localRaw=localStorage.getItem(KEY);
+    var localT=localRaw?new Date((JSON.parse(localRaw))._t||0):new Date(0);
+    if(nubeT>localT){
+      clientes=d.clientes||[];pagos=d.pagos||[];
+      mensajes=d.mensajes||[];rutinas=d.rutinas||[];
+      if(!mensajes.length) mensajes=mensajesDefault();
+      localStorage.setItem(KEY,JSON.stringify(d));
+      _syncInd('☁️ Actualizado ✓','var(--gn)');
+      cb(true);
+    } else {
+      _syncInd('☁️ Al día ✓','var(--gn)');
+      cb(false);
+    }
+  }).catch(function(){_syncInd('☁️ —','var(--gy)');cb(false);});
+}
+
+function verificarSesion(){
+  var tk=(localStorage.getItem('we_gh_token')||'').trim();
+  if(!tk) return;
+  _ghGet(_sSes).then(function(f){
+    if(f){
+      try{
+        var s=JSON.parse(atob(f.content.replace(/\n/g,'')));
+        var segs=(Date.now()-new Date(s._t))/1000;
+        if(s._id!==_sId && segs<180){
+          var mins=Math.floor(segs/60);
+          var aviso='⚠️ El sistema está abierto en otro dispositivo'+(mins>0?' (hace '+mins+' min)':'')+'.\n\n¿Tomar control aquí?';
+          if(!confirm(aviso)){return;}
+        }
+      }catch(e){}
+    }
+    _ghPut(_sSes,{_id:_sId,_t:new Date().toISOString()},f?f.sha:null);
+    setInterval(function(){
+      _ghGet(_sSes).then(function(f2){
+        if(!f2) return;
+        var s2=JSON.parse(atob(f2.content.replace(/\n/g,'')));
+        if(s2._id===_sId) _ghPut(_sSes,{_id:_sId,_t:new Date().toISOString()},f2.sha);
+      }).catch(function(){});
+    },90000);
+  }).catch(function(){});
 }
 
 /* ── HELPERS ── */
@@ -3062,6 +3148,8 @@ function initApp() {
     nutActualizar();
     renderDiasRutina();
     setInterval(function(){renderStats();renderAlertas();},60000);
+    verificarSesion();
+    cargarDesdeNube(function(actualizado){ if(actualizado){ renderTodo(); renderComidas(); renderMensajes(); } });
   } catch(e) {
     console.error('Init error:', e);
   }
