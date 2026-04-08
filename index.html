@@ -2824,7 +2824,7 @@ function subirPlan(htmlContent, nombre, msgTemplate, phone) {
   _plan_msg = ''; _plan_phone = phone; _plan_link = '';
   mostrarCargando(nombre);
 
-  var token    = (localStorage.getItem('we_gh_token') || '').trim();
+  var token = (localStorage.getItem('we_gh_token') || '').trim();
   if (!token) {
     cerrarCargando();
     pedirGitHubToken(htmlContent, nombre, msgTemplate, phone);
@@ -2835,38 +2835,54 @@ function subirPlan(htmlContent, nombre, msgTemplate, phone) {
   var fileName = nombre.replace(/[^a-zA-Z0-9]/g,'_') + '_' + Date.now() + '.html';
   var filePath = 'planes/' + fileName;
   var pageUrl  = 'https://wilminestevezcoaching.com/' + filePath;
+  var b64      = btoa(unescape(encodeURIComponent(htmlContent)));
+  var hdrs     = {'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};
+  var base     = 'https://api.github.com/repos/'+owner+'/'+repo;
+  var branchName, blobSha, refSha;
 
-  // Convertir HTML a base64
-  var b64 = btoa(unescape(encodeURIComponent(htmlContent)));
-
-  fetch('https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + filePath, {
-    method: 'PUT',
-    headers: {
-      'Authorization': 'token ' + token,
-      'Content-Type': 'application/json',
-      'Accept': 'application/vnd.github.v3+json'
-    },
-    body: JSON.stringify({
-      message: 'Plan: ' + nombre,
-      content: b64
-    })
+  // Git Data API — soporta archivos con imágenes (cualquier tamaño)
+  fetch(base, {headers:hdrs})
+  .then(function(r){ return r.json(); })
+  .then(function(info){
+    branchName = info.default_branch || 'main';
+    return fetch(base+'/git/blobs', {method:'POST',headers:hdrs,body:JSON.stringify({content:b64,encoding:'base64'})});
   })
-  .then(function(r) {
-    if (!r.ok) {
-      return r.text().then(function(t){ throw new Error('GitHub ' + r.status + ': ' + t.substring(0,100)); });
-    }
-    return r.json();
+  .then(function(r){ if(!r.ok) throw new Error('blob '+r.status); return r.json(); })
+  .then(function(blob){
+    blobSha = blob.sha;
+    return fetch(base+'/git/ref/heads/'+branchName, {headers:hdrs});
   })
-  .then(function() {
+  .then(function(r){ if(!r.ok) throw new Error('ref '+r.status); return r.json(); })
+  .then(function(ref){
+    refSha = ref.object.sha;
+    return fetch(base+'/git/commits/'+refSha, {headers:hdrs});
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(commit){
+    return fetch(base+'/git/trees', {method:'POST',headers:hdrs,body:JSON.stringify({
+      base_tree: commit.tree.sha,
+      tree: [{path:filePath, mode:'100644', type:'blob', sha:blobSha}]
+    })});
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(tree){
+    return fetch(base+'/git/commits', {method:'POST',headers:hdrs,body:JSON.stringify({
+      message:'Plan: '+nombre, tree:tree.sha, parents:[refSha]
+    })});
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(newCommit){
+    return fetch(base+'/git/refs/heads/'+branchName, {method:'PATCH',headers:hdrs,body:JSON.stringify({sha:newCommit.sha})});
+  })
+  .then(function(){
     cerrarCargando();
     var msgFinal = msgTemplate.replace('{LINK}', pageUrl);
     _plan_msg = msgFinal; _plan_link = pageUrl;
     mostrarOpciones(pageUrl);
   })
-  .catch(function(err) {
+  .catch(function(err){
     console.error('GitHub error:', err);
-    // Mostrar error exacto para debug
-    toast('Error GitHub: ' + err.message, 'err');
+    toast('Error GitHub: '+err.message, 'err');
     var blob = new Blob([htmlContent], {type:'text/html;charset=utf-8'});
     subirFallback(blob, fileName, nombre, msgTemplate, phone);
   });
