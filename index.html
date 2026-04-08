@@ -2732,17 +2732,16 @@ function subirPlan(htmlContent, nombre, msgTemplate, phone) {
   mostrarCargando(nombre);
 
   var token    = (localStorage.getItem('we_gh_token') || '').trim();
-  console.log('Token usado:', token ? token.substring(0,8) + '...' : 'VACÍO');
   if (!token) {
     cerrarCargando();
-    toast('Configura el token de GitHub en el panel 🔒', 'err');
+    pedirGitHubToken(htmlContent, nombre, msgTemplate, phone);
     return;
   }
   var owner    = 'wilmin-estevez';
   var repo     = 'Wilmincoaching';
   var fileName = nombre.replace(/[^a-zA-Z0-9]/g,'_') + '_' + Date.now() + '.html';
   var filePath = 'planes/' + fileName;
-  var pageUrl  = 'https://' + owner + '.github.io/' + repo + '/' + filePath;
+  var pageUrl  = 'https://wilminestevezcoaching.com/' + filePath;
 
   // Convertir HTML a base64
   var b64 = btoa(unescape(encodeURIComponent(htmlContent)));
@@ -2792,11 +2791,12 @@ function pedirGitHubToken(htmlContent, nombre, msgTemplate, phone) {
     '<div style="background:var(--bk3);border-radius:10px;padding:16px;margin-bottom:12px">' +
       '<div style="font-size:12px;color:var(--or);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Configurar GitHub (solo una vez)</div>' +
       '<div style="font-size:11px;color:var(--gy);line-height:1.7;margin-bottom:12px">' +
-        '1. Ve a github.com y crea cuenta gratis<br>' +
-        '2. Ve a github.com/settings/tokens<br>' +
-        '3. Generate new token (classic)<br>' +
-        '4. Marca solo el permiso "gist"<br>' +
-        '5. Copia el token y pegalo aqui' +
+        '1. Ve a github.com/settings/tokens<br>' +
+        '2. Clic en "Generate new token (classic)"<br>' +
+        '3. En "Note" escribe: WE Coaching<br>' +
+        '4. En "Expiration" elige: No expiration<br>' +
+        '5. Marca el permiso: ✅ repo<br>' +
+        '6. Clic en "Generate token" y copia el token' +
       '</div>' +
       '<input id="cfg-gh-token" type="password" placeholder="ghp_..." ' +
         'style="width:100%;font-size:12px;padding:9px 11px;background:var(--bk2);border:1px solid var(--bk4);border-radius:7px;color:var(--wh);outline:none;margin-bottom:10px">' +
@@ -2848,7 +2848,7 @@ function subirFallback(blob, fileName, nombre, msgTemplate, phone) {
           .replace('Abre tu rutina aqui:', 'Abre tu rutina aqui (link valido 72h):');
         _plan_msg = msgFinal; _plan_link = t;
         mostrarOpciones(t);
-        toast('Link temporal generado (72h). Configura Netlify para links permanentes.', 'err');
+        toast('Error al subir a GitHub. Link temporal (72h). Verifica tu token.', 'err');
       } else {
         throw new Error('no link');
       }
