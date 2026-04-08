@@ -2731,7 +2731,13 @@ function subirPlan(htmlContent, nombre, msgTemplate, phone) {
   _plan_msg = ''; _plan_phone = phone; _plan_link = '';
   mostrarCargando(nombre);
 
-  var token    = localStorage.getItem('we_gh_token') || '';
+  var token    = (localStorage.getItem('we_gh_token') || '').trim();
+  console.log('Token usado:', token ? token.substring(0,8) + '...' : 'VACÍO');
+  if (!token) {
+    cerrarCargando();
+    toast('Configura el token de GitHub en el panel 🔒', 'err');
+    return;
+  }
   var owner    = 'wilmin-estevez';
   var repo     = 'Wilmincoaching';
   var fileName = nombre.replace(/[^a-zA-Z0-9]/g,'_') + '_' + Date.now() + '.html';
@@ -2985,9 +2991,14 @@ function actualizarGHToken() {
   var token = (ge('seg-gh-token') && ge('seg-gh-token').value || '').trim();
   var okEl  = ge('seg-gh-ok');
   if (!token) { if(okEl) okEl.textContent = 'Pega el token primero.'; return; }
+  // Limpiar el token — eliminar espacios, saltos de línea y caracteres invisibles
+  token = token.replace(/[\s\r\n]/g, '');
   localStorage.setItem('we_gh_token', token);
   ge('seg-gh-token').value = '';
-  if (okEl) { okEl.style.color = 'var(--gn)'; okEl.textContent = 'Token actualizado ✓'; }
+  if (okEl) {
+    okEl.style.color = 'var(--gn)';
+    okEl.textContent = 'Token guardado: ' + token.substring(0,8) + '... (' + token.length + ' chars) ✓';
+  }
   toast('Token de GitHub actualizado ✓');
 }
 
