@@ -1584,7 +1584,7 @@ function mensajesDefault() {
     {id:'m2',titulo:'Check-in semanal',cat:'Check-in',texto:'¡Hola {nombre}! 📊 Es hora de tu check-in semanal.\n\nResponde estas preguntas:\n1️⃣ ¿Cómo fue tu semana de entrenamiento?\n2️⃣ ¿Seguiste el plan de alimentación?\n3️⃣ ¿Cómo te sientes físicamente y emocionalmente?\n4️⃣ ¿Alguna molestia o pregunta?\n\nEspero tu respuesta. ¡Tú puedes! 💪'},
     {id:'m3',titulo:'Recordatorio de pago',cat:'Pago',texto:'Hola {nombre}, espero que estés teniendo resultados increíbles 🔥\n\nTe recuerdo que tu próximo pago está próximo. Para continuar con el programa sin interrupciones, coordina el pago cuando puedas.\n\n¿Alguna pregunta? Aquí estoy.\n\n— Wilmin'},
     {id:'m4',titulo:'Motivación semanal',cat:'Motivación',texto:'¡Buenos días {nombre}! ☀️\n\nRecuerda: los resultados no son un accidente. Son el producto de decisiones consistentes, día tras día.\n\nEsta semana enfócate en:\n✅ Entrenar con intención\n✅ Respetar tu plan de alimentación\n✅ Descansar bien\n\n¡Sin excusas. Solo soluciones! 💪🔥'},
-    {id:'m5',titulo:'Entrega del plan nutricional',cat:'General',texto:'¡Hola {nombre}! Te comparto tu plan nutricional personalizado 🥗\n\nPuntos clave:\n• Pesa los alimentos en crudo para mayor precisión\n• Respeta las porciones indicadas\n• Si tienes hambre excesiva, escríbeme\n• 1 comida libre por semana está permitida\n\nAny duda, aquí estoy. ¡Vamos! 🔥'},
+    {id:'m5',titulo:'Entrega del plan nutricional',cat:'General',texto:'¡Hola {nombre}! Te comparto tu plan nutricional personalizado 🥗\n\nPuntos clave:\n• Pesa los alimentos en crudo para mayor precisión\n• Respeta las porciones indicadas\n• Si tienes hambre excesiva, escríbeme\n• 1 comida libre por semana está permitida\n\nCualquier duda, aquí estoy. ¡Vamos! 🔥'},
     {id:'m6',titulo:'Renovación del plan',cat:'Renovación',texto:'¡Hola {nombre}! 🎯 Tu plan está por vencer.\n\nHas hecho un trabajo increíble. Seguir es la mejor inversión que puedes hacer en ti mismo(a).\n\n¿Continuamos? Tengo opciones de plan disponibles para que sigas avanzando hacia tus metas.\n\n¡Escríbeme cuando quieras! 💪\n\n— Wilmin | @wilmin_estevez'},
   ];
 }
@@ -2805,17 +2805,17 @@ function enviarPlanNut() {
   var datos = generarHTMLMovilNut();
   var c = nutId ? clientes.find(function(x){return x.id===nutId;}) : null;
   var diasN = parseInt(gv('n-dias'))||4;
-  var objMap = {deficit_agresivo:'Deficit agresivo',deficit_moderado:'Deficit moderado',
-                deficit_leve:'Deficit leve',mantenimiento:'Mantenimiento',
-                superavit_leve:'Superavit leve',volumen:'Volumen'};
+  var objMap = {deficit_agresivo:'Déficit agresivo',deficit_moderado:'Déficit moderado',
+                deficit_leve:'Déficit leve',mantenimiento:'Mantenimiento',
+                superavit_leve:'Superávit leve',volumen:'Volumen'};
   var obj = objMap[gv('n-obj')]||'';
   var phone = c ? (c.phone||'').replace(/[^0-9]/g,'') : '';
   var msg = 'Hola ' + datos.nom + '! Te comparto tu plan nutricional.\n\n'
     + 'Objetivo: ' + obj + '\n'
-    + 'Calorias: ' + (nutMac.kcal||0) + ' kcal | Proteina: ' + (nutMac.prot||0)
+    + 'Calorías: ' + (nutMac.kcal||0) + ' kcal | Proteína: ' + (nutMac.prot||0)
     + 'g | Carbos: ' + (nutMac.carb||0) + 'g | Grasas: ' + (nutMac.fat||0) + 'g\n'
-    + 'Dias de entreno: ' + diasN + '/sem\n\n'
-    + 'Abre tu plan aqui: {LINK}\n\n'
+    + 'Días de entreno: ' + diasN + '/sem\n\n'
+    + 'Abre tu plan aquí: {LINK}\n\n'
     + 'Sin excusas. Solo soluciones.\nWilmin | @wilmin_estevez';
   subirPlan(datos.html, datos.nom, msg, phone);
 }
@@ -2823,15 +2823,15 @@ function enviarPlanNut() {
 function enviarRutina() {
   var datos = generarHTMLMovilRutina();
   if (!datos) { toast('Agrega ejercicios primero', 'err'); return; }
-  var clienteNom = datos.c ? datos.c.name : 'campeon';
+  var clienteNom = datos.c ? datos.c.name : 'campeón';
   var dias = gv('rut-dias') || '4';
   var semanas = gv('rut-semanas') || '8';
   var obj = gv('rut-obj') || '';
-  var msg = 'Hola ' + clienteNom + '! Aqui tienes tu plan de entrenamiento.\n\n'
+  var msg = 'Hola ' + clienteNom + '! Aquí tienes tu plan de entrenamiento.\n\n'
     + 'Plan: ' + datos.nom + '\n'
-    + 'Objetivo: ' + obj + ' | ' + dias + ' dias/sem | ' + semanas + ' semanas\n\n'
-    + 'Abre tu rutina aqui: {LINK}\n\n'
-    + 'Veras cada ejercicio con imagen, series, reps y descanso.\n\n'
+    + 'Objetivo: ' + obj + ' | ' + dias + ' días/sem | ' + semanas + ' semanas\n\n'
+    + 'Abre tu rutina aquí: {LINK}\n\n'
+    + 'Verás cada ejercicio con imagen, series, reps y descanso.\n\n'
     + 'Sin excusas. Solo soluciones.\nWilmin | @wilmin_estevez';
   subirPlan(datos.html, datos.nom, msg, datos.phone);
 }
@@ -2977,8 +2977,8 @@ function subirFallback(blob, fileName, nombre, msgTemplate, phone) {
       t = t.trim();
       if (t && t.indexOf('https://') === 0) {
         var msgFinal = msgTemplate.replace('{LINK}', t)
-          .replace('Abre tu plan aqui:', 'Abre tu plan aqui (link valido 72h):')
-          .replace('Abre tu rutina aqui:', 'Abre tu rutina aqui (link valido 72h):');
+          .replace('Abre tu plan aquí:', 'Abre tu plan aquí (link válido 72h):')
+          .replace('Abre tu rutina aquí:', 'Abre tu rutina aquí (link válido 72h):');
         _plan_msg = msgFinal; _plan_link = t;
         mostrarOpciones(t);
         toast('Error al subir a GitHub. Link temporal (72h). Verifica tu token.', 'err');
@@ -2988,8 +2988,8 @@ function subirFallback(blob, fileName, nombre, msgTemplate, phone) {
     })
     .catch(function() {
       var msgFinal = msgTemplate
-        .replace('Abre tu plan aqui: {LINK}\n\n', 'Te adjunto el archivo del plan.\n\n')
-        .replace('Abre tu rutina aqui: {LINK}\n\n', 'Te adjunto el archivo de tu rutina.\n\n');
+        .replace('Abre tu plan aquí: {LINK}\n\n', 'Te adjunto el archivo del plan.\n\n')
+        .replace('Abre tu rutina aquí: {LINK}\n\n', 'Te adjunto el archivo de tu rutina.\n\n');
       _plan_msg = msgFinal;
       mostrarOpciones(null);
     });
@@ -3141,7 +3141,7 @@ function cargarHashGuardado() {
 }
 
 function cerrarSesion() {
-  if (!confirm('Cerrar sesion?')) return;
+  if (!confirm('¿Cerrar sesión?')) return;
   sessionStorage.removeItem(SESSION_KEY);
   ge('login-user').value = '';
   ge('login-pass').value = '';
@@ -3166,15 +3166,15 @@ async function cambiarCredenciales() {
   errEl.textContent=''; okEl.textContent='';
   if (!userNow||!passNow){errEl.textContent='Ingresa tus credenciales actuales.';return;}
   if (!userNew||!passNew){errEl.textContent='Completa las nuevas credenciales.';return;}
-  if (passNew.length<8){errEl.textContent='La nueva contrasena debe tener al menos 8 caracteres.';return;}
-  if (passNew!==passConf){errEl.textContent='Las contrasennas no coinciden.';return;}
+  if (passNew.length<8){errEl.textContent='La nueva contraseña debe tener al menos 8 caracteres.';return;}
+  if (passNew!==passConf){errEl.textContent='Las contraseñas no coinciden.';return;}
   var hashActual=await hashStr(userNow+':'+passNow);
-  if (hashActual!==AUTH_HASH){errEl.textContent='Usuario o contrasena actual incorrectos.';return;}
+  if (hashActual!==AUTH_HASH){errEl.textContent='Usuario o contraseña actual incorrectos.';return;}
   var hashNuevo=await hashStr(userNew+':'+passNew);
   AUTH_HASH=hashNuevo;
   localStorage.setItem('we_auth_hash',hashNuevo);
   okEl.textContent='Credenciales actualizadas correctamente.';
-  toast('Contrasena actualizada');
+  toast('Contraseña actualizada');
 }
 
 /* ══════════════════════════════════════════════════
