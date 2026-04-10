@@ -869,6 +869,13 @@ var rutinas = [];
 var comidas = [];
 var nutMac = {tdee:0,kcal:0,prot:0,carb:0,fat:0};
 
+function fixMojibake(str) {
+  // Corrige doble codificacion UTF-8/Latin-1 (ej: "TransformaciÃ³n" -> "Transformación")
+  return str.replace(/[\u00C0-\u00DF][\u0080-\u00BF]/g, function(m) {
+    try { return new TextDecoder('utf-8').decode(new Uint8Array([m.charCodeAt(0), m.charCodeAt(1)])); }
+    catch(e) { return m; }
+  });
+}
 function cargar() {
   try {
     var raw = localStorage.getItem(KEY);
@@ -879,7 +886,7 @@ function cargar() {
         var oldRaw = localStorage.getItem(oldKeys[i]);
         if (oldRaw) {
           try {
-            var oldData = JSON.parse(oldRaw);
+            var oldData = JSON.parse(fixMojibake(oldRaw));
             // Handle old format (array) or new format (object)
             if (Array.isArray(oldData)) {
               clientes = oldData;
@@ -894,13 +901,18 @@ function cargar() {
         }
       }
     }
-    var d = JSON.parse(raw || '{}');
+    var fixedRaw = fixMojibake(raw || '{}');
+    var d = JSON.parse(fixedRaw);
     clientes = d.clientes || [];
     pagos = d.pagos || [];
     mensajes = d.mensajes || [];
     rutinas = d.rutinas || [];
     imagenesEj = d.imagenesEj || {};
     if (!mensajes.length) mensajes = mensajesDefault();
+    // Si habia mojibake, guardar version corregida en localStorage
+    if (raw && fixedRaw !== raw) {
+      localStorage.setItem(KEY, JSON.stringify({clientes:clientes,pagos:pagos,mensajes:mensajes,rutinas:rutinas,imagenesEj:imagenesEj,_t:new Date().toISOString()}));
+    }
     aplicarImagenesEj();
   } catch(e) { clientes=[]; pagos=[]; mensajes=mensajesDefault(); rutinas=[]; }
 }
@@ -978,10 +990,10 @@ function cargarDesdeNube(cb){
   var localData=localRaw?JSON.parse(localRaw):null;
   var localT=localData?new Date(localData._t||0):new Date(0);
   _ghGet(_sData).then(function(f){
-    var nubeT=f?new Date(JSON.parse(atob(f.content.replace(/\n/g,'')))._t||0):new Date(0);
+    var nubeT=f?new Date(JSON.parse(fixMojibake(atob(f.content.replace(/\n/g,''))))._t||0):new Date(0);
     if(nubeT>localT){
       // Nube más reciente → bajar
-      var d=JSON.parse(atob(f.content.replace(/\n/g,'')));
+      var d=JSON.parse(fixMojibake(atob(f.content.replace(/\n/g,''))));
       clientes=d.clientes||[];pagos=d.pagos||[];
       mensajes=d.mensajes||[];rutinas=d.rutinas||[];
       imagenesEj=d.imagenesEj||{};
