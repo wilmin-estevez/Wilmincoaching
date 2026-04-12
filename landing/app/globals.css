@@ -11,6 +11,9 @@
   --text: #f4f4f5;
   --muted: #a1a1aa;
   --subtle: #52525b;
+  --radius: 0.625rem;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.1);
 }
 
 *, *::before, *::after {
