@@ -115,7 +115,7 @@ export function Hero() {
                   src="/images/wilmin-posando.jpeg"
                   alt="Wilmin posando"
                   fill
-                  className="object-cover object-center"
+                  className="object-cover object-top"
                 />
                 {/* Badge flotante */}
                 <div className="absolute bottom-3 right-3 rounded-lg border border-[rgba(255,69,0,0.3)] bg-[rgba(24,24,27,0.9)] px-3 py-2 backdrop-blur-sm">

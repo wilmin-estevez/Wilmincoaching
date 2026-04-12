@@ -48,29 +48,14 @@ export function Testimonials() {
             <BlurFade key={t.name} delay={i * 0.08} inView>
               <MagicCard className="glass h-full flex flex-col overflow-hidden">
                 {/* Foto del cliente */}
-                <div className="grid grid-cols-2 gap-px bg-white/[0.04]">
-                  <div className="relative h-36 bg-bg-3">
-                    <Image
-                      src={t.image}
-                      alt={`${t.name} — antes`}
-                      fill
-                      className="object-cover object-top grayscale"
-                    />
-                    <div className="absolute bottom-1 left-1 rounded bg-black/60 px-2 py-[2px] text-[8px] tracking-[1px] text-brand-subtle uppercase">
-                      Antes
-                    </div>
-                  </div>
-                  <div className="relative h-36 bg-[rgba(255,69,0,0.04)]">
-                    <Image
-                      src={t.image}
-                      alt={`${t.name} — después`}
-                      fill
-                      className="object-cover object-bottom"
-                    />
-                    <div className="absolute bottom-1 right-1 rounded bg-[rgba(255,69,0,0.8)] px-2 py-[2px] text-[8px] tracking-[1px] text-white uppercase">
-                      Después
-                    </div>
-                  </div>
+                <div className="relative h-52 bg-bg-3">
+                  <Image
+                    src={t.image}
+                    alt={`${t.name} — transformación`}
+                    fill
+                    className="object-cover object-top"
+                  />
+                  <div className="absolute bottom-0 inset-x-0 h-12 bg-gradient-to-t from-[#18181b] to-transparent" />
                 </div>
                 {/* Contenido */}
                 <div className="flex flex-grow flex-col p-5">
