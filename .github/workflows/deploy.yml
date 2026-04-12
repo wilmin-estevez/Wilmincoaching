@@ -1,10 +1,8 @@
-name: Deploy Landing Page
+name: Deploy
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'landing/**'
 
 permissions:
   contents: read
@@ -31,14 +29,29 @@ jobs:
         run: npm ci
         working-directory: landing
 
-      - name: Build
+      - name: Build landing page
         run: npm run build
         working-directory: landing
+
+      - name: Assemble deployment folder
+        run: |
+          mkdir -p _site
+          # Landing page at root
+          cp -r landing/out/. _site/
+          # Coaching app at /app
+          mkdir -p _site/app
+          cp app/index.html _site/app/index.html
+          # Client plans at /planes (publicly accessible)
+          if [ -d planes ]; then
+            cp -r planes _site/planes
+          fi
+          # Custom domain
+          cp CNAME _site/CNAME
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: landing/out
+          path: _site
 
   deploy:
     needs: build
