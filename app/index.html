@@ -432,6 +432,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
 .login-err{color:var(--rd);font-size:11px;margin-top:10px;min-height:16px;}
 .login-footer{font-size:9px;color:var(--gy2);margin-top:20px;}
 
+/* ── SETUP SCREEN (primer acceso) ── */
+#setup-screen{position:fixed;inset:0;background:var(--bk);z-index:9998;display:none;align-items:center;justify-content:center;}
+.setup-box{background:var(--bk2);border:1px solid rgba(255,69,0,.25);border-radius:16px;padding:36px 32px;width:100%;max-width:420px;text-align:center;}
+.setup-icon{font-size:40px;margin-bottom:14px;}
+.setup-title{font-size:17px;font-weight:800;margin-bottom:6px;}
+.setup-sub{font-size:12px;color:var(--gy);margin-bottom:22px;line-height:1.65;}
+.setup-hint{font-size:10px;color:var(--gy2);margin-top:7px;text-align:left;line-height:1.55;}
+.setup-actions{display:flex;gap:10px;margin-top:18px;}
+.setup-skip{background:transparent;border:1px solid var(--bk4);border-radius:8px;padding:11px 14px;font-size:12px;color:var(--gy);cursor:pointer;white-space:nowrap;font-family:inherit;transition:border-color .15s,color .15s;}
+.setup-skip:hover{border-color:var(--gy2);color:var(--wh);}
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -458,6 +468,25 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
     <button class="login-btn" onclick="loginCheck()">Entrar</button>
     <div class="login-err" id="login-err"></div>
     <div class="login-footer">WE Coaching System v3 · Acceso privado</div>
+  </div>
+</div>
+
+<!-- SETUP SCREEN — primer acceso en este dispositivo -->
+<div id="setup-screen">
+  <div class="setup-box">
+    <div class="setup-icon">☁️</div>
+    <div class="setup-title">Primer acceso en este dispositivo</div>
+    <div class="setup-sub">Para cargar todos tus datos desde la nube, pega tu token de GitHub.<br>Solo se pide una vez por dispositivo.</div>
+    <div class="login-field">
+      <label>Token de GitHub</label>
+      <input id="setup-token" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" onkeydown="if(event.key==='Enter')completarSetup()">
+    </div>
+    <div class="setup-hint">📌 GitHub → Settings → Developer Settings → Personal access tokens (classic) → scope: <strong>repo</strong></div>
+    <div class="login-err" id="setup-err" style="margin-top:12px;"></div>
+    <div class="setup-actions">
+      <button class="setup-skip" onclick="saltarSetup()">Continuar sin nube</button>
+      <button class="login-btn" style="flex:1;margin-top:0" onclick="completarSetup()">Sincronizar y entrar →</button>
+    </div>
   </div>
 </div>
 
@@ -4499,6 +4528,7 @@ async function loginCheck() {
     document.getElementById('login-screen').style.display='none';
     errEl.textContent='';
     resetInactivity();
+    if(!(localStorage.getItem('we_gh_token')||'').trim()){mostrarSetup();}
   } else {
     var att=parseInt(sessionStorage.getItem(_LOGIN_ATT)||'0')+1;
     if(att>=5){
@@ -4518,10 +4548,55 @@ function checkAuth() {
   cargarHashGuardado();
   if (sessionStorage.getItem(SESSION_KEY) === '1') {
     document.getElementById('login-screen').style.display = 'none';
+    if(!(localStorage.getItem('we_gh_token')||'').trim()){mostrarSetup();}
   }
 }
 
 
+
+function mostrarSetup(){
+  var s=ge('setup-screen');
+  if(s){s.style.display='flex';}
+}
+
+async function completarSetup(){
+  var token=(ge('setup-token').value||'').trim().replace(/[\s\r\n]/g,'');
+  var errEl=ge('setup-err');
+  if(!token){errEl.textContent='Pega el token de GitHub.';return;}
+  errEl.textContent='Verificando...';
+  try{
+    var OWNER='wilmin-estevez',REPO='Wilmincoaching',PATH='data/sync.json';
+    var r=await fetch('https://api.github.com/repos/'+OWNER+'/'+REPO+'/contents/'+PATH,{
+      headers:{Authorization:'token '+token,Accept:'application/vnd.github.v3+json'}
+    });
+    if(!r.ok){errEl.textContent='Token inválido o sin acceso al repositorio.';return;}
+    var file=await r.json();
+    var syncData=JSON.parse(atob(file.content.replace(/\n/g,'')));
+    // Guardar token
+    localStorage.setItem('we_gh_token',token);
+    // Cargar datos del servidor
+    if(syncData.clientes) clientes=syncData.clientes;
+    if(syncData.prospectos) prospectos=syncData.prospectos;
+    if(syncData.pagos) pagos=syncData.pagos;
+    if(syncData.mensajes) mensajes=syncData.mensajes;
+    if(syncData.comidas) comidas=syncData.comidas;
+    if(syncData.AUTH_HASH){AUTH_HASH=syncData.AUTH_HASH;localStorage.setItem('we_auth_hash',syncData.AUTH_HASH);}
+    guardarTodo();
+    ge('setup-screen').style.display='none';
+    ge('setup-token').value='';
+    errEl.textContent='';
+    renderTodo();
+    toast('✅ Sincronización completa — '+((clientes||[]).length)+' asesorados cargados');
+  }catch(e){
+    console.error('Setup error:',e);
+    errEl.textContent='Error de conexión. Verifica el token e intenta de nuevo.';
+  }
+}
+
+function saltarSetup(){
+  ge('setup-screen').style.display='none';
+  toast('Continuando sin sincronización en la nube');
+}
 
 function actualizarGHToken() {
   var token = (ge('seg-gh-token') && ge('seg-gh-token').value || '').trim();
