@@ -8,7 +8,7 @@ const plans = [
     tier: 'Nivel 1 — Entrada',
     name: 'Arranque',
     hook: '"Empieza sin excusas"',
-    price: '$37',
+    price: '$47',
     period: 'Pago único · Producto digital',
     tag: 'Sin seguimiento directo',
     features: [

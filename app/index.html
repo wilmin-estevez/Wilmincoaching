@@ -666,7 +666,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
         <div class="r2">
           <div class="fg"><label>Plan</label>
             <select id="n-plan" onchange="nutActualizar()">
-              <option>Arranque — $37</option><option>Transformación 8 Semanas — $197</option><option>Elite Mensual — $247</option>
+              <option>Arranque — $47</option><option>Transformación 8 Semanas — $197</option><option>Elite Mensual — $247</option>
             </select>
           </div>
           <div class="fg"><label>Días entreno/sem</label>
@@ -925,7 +925,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
     <div class="r2">
       <div class="fg"><label>Plan</label>
         <select id="mc-plan">
-          <option value="Arranque - $37">Arranque — $37</option>
+          <option value="Arranque - $47">Arranque — $47</option>
           <option value="Transformación 8 Semanas - $197">Transformación 8 Semanas — $197</option>
           <option value="Elite Mensual - $247">Elite Mensual — $247</option>
         </select>
@@ -1041,7 +1041,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
     <div id="mr-info" style="background:var(--bk3);border-radius:7px;padding:9px 11px;margin-bottom:11px;font-size:12px;"></div>
     <div class="fg"><label>Nuevo plan</label>
       <select id="mr-plan">
-        <option value="Arranque - $37">Arranque — $37</option>
+        <option value="Arranque - $47">Arranque — $47</option>
         <option value="Transformación 8 Semanas - $197">Transformación 8 Semanas — $197</option>
         <option value="Elite Mensual - $247">Elite Mensual — $247</option>
       </select>
@@ -1828,7 +1828,7 @@ function renderProspectos(){
   list.style.display='';ge('pros-toggle').textContent='▼';
   list.innerHTML=pros.slice().reverse().map(function(p){
     var goal={grasa:'Perder grasa',musculo:'Ganar músculo',ambos:'Transformación completa',habitos:'Mejorar hábitos'}[p.objetivo]||p.objetivo||'—';
-    var plan={arranque:'Arranque $37',transformacion:'Transformación $197',elite:'Elite $247','no-se':'Sin decidir'}[p.plan]||p.plan||'—';
+    var plan={arranque:'Arranque $47',transformacion:'Transformación $197',elite:'Elite $247','no-se':'Sin decidir'}[p.plan]||p.plan||'—';
     return '<div class="pros-card">'+
       '<div class="c-av" style="background:'+avatarColor(p.nombre)+';width:32px;height:32px;font-size:11px;flex-shrink:0">'+iniciales(p.nombre)+'</div>'+
       '<div class="pros-info">'+
@@ -1861,8 +1861,8 @@ function convertirProspecto(id){
   ge('mc-tit').textContent='Nuevo asesorado';ge('mc-sub').textContent='Desde solicitud de '+p.nombre;
   sv('mc-nom',p.nombre||'');sv('mc-wa',p.telefono||'');sv('mc-notas',p.notas||'');
   sv('mc-ini',hoy());
-  var planMap={arranque:'Arranque - $37',transformacion:'Transformación 8 Semanas - $197',elite:'Elite Mensual - $247'};
-  sv('mc-plan',planMap[p.plan]||'Arranque - $37');
+  var planMap={arranque:'Arranque - $47',transformacion:'Transformación 8 Semanas - $197',elite:'Elite Mensual - $247'};
+  sv('mc-plan',planMap[p.plan]||'Arranque - $47');
   var objMap={grasa:'Pérdida de grasa',musculo:'Ganancia muscular',ambos:'Cambio de estilo de vida',habitos:'Cambio de estilo de vida'};
   sv('mc-obj',objMap[p.objetivo]||'Pérdida de grasa');
   p.estado='convertido';guardarTodo();renderProspectos();
@@ -1883,7 +1883,7 @@ function abrirModalCliente() {
   editId=null;
   ge('mc-tit').textContent='Nuevo asesorado'; ge('mc-sub').textContent='Completa los datos del nuevo cliente';
   ['mc-nom','mc-wa','mc-notas','mc-kg','mc-cm','mc-edad'].forEach(function(id){sv(id,'');});
-  sv('mc-plan','Arranque - $37'); sv('mc-obj','Pérdida de grasa'); sv('mc-sex','m');
+  sv('mc-plan','Arranque - $47'); sv('mc-obj','Pérdida de grasa'); sv('mc-sex','m');
   sv('mc-ini',hoy()); ['mc-pago','mc-ci','mc-nut','mc-ses'].forEach(function(id){sv(id,'');});
   sv('mc-etapa','auto');
   _poblarReferidoSelect(null);
@@ -1893,7 +1893,7 @@ function editarCliente(id) {
   var c=clientes.find(function(x){return x.id===id;}); if(!c)return;
   editId=id;
   ge('mc-tit').textContent='Editar asesorado'; ge('mc-sub').textContent='Modifica los datos';
-  sv('mc-nom',c.name||''); sv('mc-wa',c.phone||''); sv('mc-plan',c.plan||'Arranque - $37');
+  sv('mc-nom',c.name||''); sv('mc-wa',c.phone||''); sv('mc-plan',c.plan||'Arranque - $47');
   sv('mc-obj',c.goal||'Pérdida de grasa'); sv('mc-ini',c.startDate||'');
   sv('mc-pago',c.paymentDate||''); sv('mc-ci',c.checkinDate||'');
   sv('mc-nut',c.nutritionDate||''); sv('mc-ses',c.sessionDate||'');
@@ -2280,7 +2280,7 @@ function abrirModalRenovar(id) {
   renId=id;
   var c=clientes.find(function(x){return x.id===id;}); if(!c)return;
   ge('mr-sub').textContent=c.name;
-  sv('mr-plan',c.plan||'Arranque - $37'); sv('mr-ini',hoy()); sv('mr-pago',hoy()); sv('mr-notas','');
+  sv('mr-plan',c.plan||'Arranque - $47'); sv('mr-ini',hoy()); sv('mr-pago',hoy()); sv('mr-notas','');
   ge('mr-info').innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--gy)">Plan actual</span><span style="color:var(--or);font-weight:600">'+c.plan+'</span></div>'+
     '<div style="display:flex;justify-content:space-between"><span style="color:var(--gy)">Renovaciones previas</span><span style="color:var(--wh)">'+(c.renewals||[]).length+'</span></div>';
   abrirModal('mo-ren');
@@ -4342,7 +4342,7 @@ function cargarNutCliente(id) {
   nutId=id;
   sv('n-nom',c.name||'');
   sv('n-obj',GOAL_MAP[c.goal]||'deficit_moderado');
-  sv('n-plan',c.plan||'Arranque — $37');
+  sv('n-plan',c.plan||'Arranque — $47');
   // Auto-fill physical data (sync fix #5)
   var lp=ultimoPeso(c);
   if(lp) sv('n-kg',lp.kg);

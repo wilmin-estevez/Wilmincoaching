@@ -24,7 +24,7 @@ const FORMSPREE_ID: string = 'YOUR_FORM_ID'
 const PAYMENT_LINKS: Record<string, { url: string; price: string; label: string }> = {
   arranque: {
     url: 'YOUR_STRIPE_LINK_ARRANQUE',
-    price: '$37',
+    price: '$47',
     label: 'Arranque',
   },
   transformacion: {
@@ -333,7 +333,7 @@ export function ApplyForm() {
                     <SelectValue placeholder="Selecciona un plan" />
                   </SelectTrigger>
                   <SelectContent className="border-white/[0.08] bg-bg-3 text-brand-text">
-                    <SelectItem value="arranque">Arranque — $37 (producto digital)</SelectItem>
+                    <SelectItem value="arranque">Arranque — $47 (producto digital)</SelectItem>
                     <SelectItem value="transformacion">Transformación 8 Semanas — $197</SelectItem>
                     <SelectItem value="elite">Elite Mensual — $247</SelectItem>
                     <SelectItem value="no-se">No estoy seguro aún — quiero hablar primero</SelectItem>
