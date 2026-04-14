@@ -105,7 +105,10 @@ export function Pricing() {
                   ))}
                 </ul>
                 {plan.featured ? (
-                  <ShimmerButton className="w-full justify-center py-3 text-[12px]">
+                  <ShimmerButton
+                    onClick={() => document.getElementById('aplicar')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="w-full justify-center py-3 text-[12px]"
+                  >
                     {plan.cta}
                   </ShimmerButton>
                 ) : (
