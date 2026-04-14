@@ -43,17 +43,29 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
 .r4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px;}
 .fg{margin-bottom:8px;}
 
-/* ── HEADER ── */
-.hdr{background:var(--bk2);border-bottom:1px solid rgba(255,69,0,.2);padding:0 18px;display:flex;align-items:center;height:50px;flex-shrink:0;}
-.logo{display:flex;align-items:center;gap:8px;margin-right:20px;}
-.logo-bar{width:4px;height:26px;background:var(--or);border-radius:2px;}
-.logo-name{font-size:14px;font-weight:700;}.logo-name span{color:var(--or);}
-.logo-sub{font-size:9px;color:var(--gy);letter-spacing:2px;text-transform:uppercase;}
-.nav{display:flex;height:100%;}
-.ntab{padding:0 16px;font-size:12px;font-weight:600;cursor:pointer;color:var(--gy);border:none;background:transparent;border-bottom:2px solid transparent;transition:all .2s;}
-.ntab.on{color:var(--or);border-bottom-color:var(--or);}
-.ntab:hover:not(.on){color:var(--wh);}
-.hdr-r{margin-left:auto;display:flex;gap:6px;align-items:center;}
+/* ── APP SHELL / SIDEBAR ── */
+.app-shell{display:flex;height:100%;overflow:hidden;}
+.sidebar{width:210px;background:var(--bk2);border-right:1px solid var(--bk4);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;}
+.sb-top{padding:16px 14px 14px;border-bottom:1px solid var(--bk4);flex-shrink:0;}
+.sb-logo{display:flex;align-items:center;gap:9px;}
+.sb-bar{width:4px;height:26px;background:var(--or);border-radius:2px;}
+.sb-name{font-size:13px;font-weight:700;line-height:1.25;}.sb-name span{color:var(--or);}
+.sb-sub{font-size:8px;color:var(--gy);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+.sb-nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;}
+.snav{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;color:var(--gy);border:none;background:transparent;text-align:left;width:100%;transition:background .15s,color .15s;}
+.snav:hover:not(.on){background:var(--bk3);color:var(--wh);}
+.snav.on{background:rgba(255,69,0,.13);color:var(--or);font-weight:600;}
+.snav svg{width:15px;height:15px;flex-shrink:0;}
+.sb-bottom{padding:10px 8px;border-top:1px solid var(--bk4);flex-shrink:0;display:flex;flex-direction:column;gap:2px;}
+.sb-sync-row{font-size:10px;color:var(--gy);padding:3px 8px 6px;}
+.sb-btn{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:7px;font-size:11px;font-weight:500;cursor:pointer;color:var(--gy);border:none;background:transparent;text-align:left;width:100%;transition:background .15s,color .15s;}
+.sb-btn:hover{background:var(--bk3);color:var(--wh);}
+.sb-btn-rd:hover{background:var(--rda);color:var(--rd);}
+/* ── MAIN AREA ── */
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.topbar{height:48px;background:var(--bk2);border-bottom:1px solid rgba(255,69,0,.18);display:flex;align-items:center;padding:0 18px;gap:12px;flex-shrink:0;}
+.topbar-title{font-size:14px;font-weight:700;flex:1;color:var(--wh);}
+.content-area{flex:1;overflow:hidden;display:flex;flex-direction:column;}
 
 /* ── TABS ── */
 .tab{display:none;flex:1;overflow:hidden;flex-direction:column;}
@@ -287,6 +299,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
 .month-bar-fill{width:100%;background:var(--or);border-radius:2px 2px 0 0;min-height:3px;transition:height .3s;}
 .month-lbl{font-size:8px;color:var(--gy);}
 
+@media(max-width:900px){
+  .sidebar{width:56px;}
+  .sb-name,.sb-sub,.snav span,.sb-sync-row,.sb-btn span{display:none;}
+  .snav{justify-content:center;padding:10px;}
+  .sb-btn{justify-content:center;padding:10px;}
+  .snav svg{width:18px;height:18px;}
+}
 @media(max-width:700px){
   .stats-bar{grid-template-columns:repeat(3,1fr);}
   .t2-layout{grid-template-columns:1fr;}
@@ -388,28 +407,52 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
   </div>
 </div>
 
-<!-- HEADER -->
-<div class="hdr">
-  <div class="logo">
-    <div class="logo-bar"></div>
-    <div><div class="logo-name">WILMIN <span>ESTÉVEZ</span></div><div class="logo-sub">Coaching System v3.1 — GHP</div></div>
+<div class="app-shell">
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-top">
+    <div class="sb-logo">
+      <div class="sb-bar"></div>
+      <div><div class="sb-name">WILMIN <span>ESTÉVEZ</span></div><div class="sb-sub">Coaching System</div></div>
+    </div>
   </div>
-  <div class="nav">
-    <button class="ntab on" onclick="showTab('t1')">Asesorados</button>
-    <button class="ntab" onclick="showTab('t2')">Diseñador Nutricional</button>
-    <button class="ntab" onclick="showTab('t3')">Rutinas</button>
-    <button class="ntab" onclick="showTab('t4')">Métricas</button>
-    <button class="ntab" onclick="showTab('t5')">Mensajes</button>
+  <nav class="sb-nav">
+    <button class="snav on" data-tab="t1" onclick="showTab('t1')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Asesorados
+    </button>
+    <button class="snav" data-tab="t2" onclick="showTab('t2')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+      Nutricional
+    </button>
+    <button class="snav" data-tab="t3" onclick="showTab('t3')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m8 12 2.5 2.5L16 9"/></svg>
+      Rutinas
+    </button>
+    <button class="snav" data-tab="t4" onclick="showTab('t4')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+      Métricas
+    </button>
+    <button class="snav" data-tab="t5" onclick="showTab('t5')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Mensajes
+    </button>
+  </nav>
+  <div class="sb-bottom">
+    <div class="sb-sync-row" id="sync-ind">☁️ —</div>
+    <button class="sb-btn" onclick="backupData()">💾 Backup</button>
+    <button class="sb-btn" onclick="restoreData()">📂 Restaurar</button>
+    <button class="sb-btn" onclick="abrirPanelSeguridad()">🔒 Seguridad</button>
+    <button class="sb-btn sb-btn-rd" onclick="cerrarSesion()">⏻ Cerrar sesión</button>
   </div>
-  <div class="hdr-r">
-    <span id="sync-ind" style="font-size:10px;color:var(--gy);margin-right:4px">☁️ —</span>
-    <button class="btn b-dk b-sm" onclick="backupData()">💾 Backup</button>
-    <button class="btn b-dk b-sm" onclick="restoreData()">📂 Restaurar</button>
-    <button class="btn b-or b-sm" onclick="abrirModalCliente()">+ Nuevo asesorado</button>
-    <button class="btn b-dk b-sm" onclick="abrirPanelSeguridad()" title="Seguridad">🔒</button>
-    <button class="btn b-rd b-sm" onclick="cerrarSesion()" title="Cerrar sesión">Salir</button>
+</aside>
+<!-- MAIN -->
+<div class="main-area">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Asesorados</div>
+    <button class="btn b-or b-sm" id="btn-nuevo-asesorado" onclick="abrirModalCliente()">+ Nuevo asesorado</button>
   </div>
-</div>
+  <div class="content-area">
 
 <!-- ================== TAB 1 — ASESORADOS ================== -->
 <div id="t1" class="tab on">
@@ -684,6 +727,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
     </div>
   </div>
 </div>
+  </div><!-- /content-area -->
+</div><!-- /main-area -->
+</div><!-- /app-shell -->
 
 <!-- ===================== MODALS ===================== -->
 
@@ -1079,6 +1125,7 @@ function textoD(d) {
   if (n<=7) return 'En '+n+' días'; return fmtFecha(d);
 }
 function iniciales(n) { return (n||'?').split(' ').slice(0,2).map(function(x){return x[0]||'';}).join('').toUpperCase()||'?'; }
+function avatarColor(n){var cs=['#FF4500','#3b82f6','#22c55e','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316'];return cs[(n||'?').split('').reduce(function(s,c){return s+c.charCodeAt(0);},0)%cs.length];}
 function precioPlan(p) { var m=(p||'').match(/\$(\d+)/); return m?parseInt(m[1]):0; }
 function diasPlan(p) { return (p||'').indexOf('Arranque')>=0?30:(p||'').indexOf('Transformaci')>=0?90:180; }
 function progreso(c) {
@@ -1114,11 +1161,12 @@ function toast(msg,tipo) {
 document.addEventListener('click',function(e){if(e.target.classList.contains('mo'))e.target.classList.remove('on');});
 
 /* ── TABS ── */
+var TAB_TITLES={t1:'Asesorados',t2:'Diseñador Nutricional',t3:'Rutinas',t4:'Métricas',t5:'Mensajes'};
 function showTab(id) {
   ['t1','t2','t3','t4','t5'].forEach(function(t){ge(t).classList.toggle('on',t===id);});
-  document.querySelectorAll('.ntab').forEach(function(b,i){
-    b.classList.toggle('on',['t1','t2','t3','t4','t5'][i]===id);
-  });
+  document.querySelectorAll('.snav').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===id);});
+  var tEl=ge('topbar-title'); if(tEl) tEl.textContent=TAB_TITLES[id]||'';
+  var nb=ge('btn-nuevo-asesorado'); if(nb) nb.style.display=(id==='t1')?'':'none';
   if (id==='t2') renderNutBtns();
   if (id==='t3') renderRutBtns();
   if (id==='t4') renderMetricas();
@@ -1181,7 +1229,7 @@ function renderLista() {
     var als=alertasCliente(c);
     var pills=als.length?als.map(function(a){return '<span class="pl '+(a.n<=0?'pl-r':'pl-y')+'">'+a.lbl+'</span>';}).join(''):'<span class="pl pl-g">Al día</span>';
     return '<div class="c-row">'+
-      '<div class="c-av">'+iniciales(c.name)+'</div>'+
+      '<div class="c-av" style="background:'+avatarColor(c.name)+'">'+iniciales(c.name)+'</div>'+
       '<div class="c-info"><div class="c-name">'+c.name+'</div><div class="c-sub">'+c.plan+(c.goal?' · '+c.goal:'')+'</div></div>'+
       '<div class="c-pills">'+pills+'</div>'+
       '<div class="c-btns">'+
@@ -1317,7 +1365,7 @@ function abrirPerfil(id) {
 
   ge('pf-cont').innerHTML=
     '<div class="pf-hdr">'+
-      '<div class="pf-av">'+iniciales(c.name)+'</div>'+
+      '<div class="pf-av" style="background:'+avatarColor(c.name)+'">'+iniciales(c.name)+'</div>'+
       '<div>'+
         '<div class="pf-name">'+c.name+'</div>'+
         '<div class="pf-sub">'+c.plan+' · '+(c.goal||'—')+' · Progreso: '+pr+'%'+
@@ -3860,19 +3908,36 @@ async function hashStr(str) {
   return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
 }
 
+var _LOGIN_ATT='we_login_att',_LOGIN_LOCK='we_login_lock';
 async function loginCheck() {
-  var user = (document.getElementById('login-user').value || '').trim().toLowerCase();
-  var pass = document.getElementById('login-pass').value || '';
-  var errEl = document.getElementById('login-err');
-  if (!user || !pass) { errEl.textContent = 'Completa usuario y contraseña'; return; }
-  var hash = await hashStr(user + ':' + pass);
-  if (hash === AUTH_HASH) {
-    sessionStorage.setItem(SESSION_KEY, '1');
-    document.getElementById('login-screen').style.display = 'none';
-    errEl.textContent = '';
+  var errEl=document.getElementById('login-err');
+  var lock=parseInt(sessionStorage.getItem(_LOGIN_LOCK)||'0');
+  if(lock&&Date.now()<lock){
+    var secs=Math.ceil((lock-Date.now())/1000);
+    errEl.textContent='Acceso bloqueado. Espera '+secs+'s.';
+    return;
+  }
+  var user=(document.getElementById('login-user').value||'').trim().toLowerCase();
+  var pass=document.getElementById('login-pass').value||'';
+  if(!user||!pass){errEl.textContent='Completa usuario y contraseña';return;}
+  var hash=await hashStr(user+':'+pass);
+  if(hash===AUTH_HASH){
+    sessionStorage.removeItem(_LOGIN_ATT);sessionStorage.removeItem(_LOGIN_LOCK);
+    sessionStorage.setItem(SESSION_KEY,'1');
+    document.getElementById('login-screen').style.display='none';
+    errEl.textContent='';
+    resetInactivity();
   } else {
-    errEl.textContent = 'Usuario o contraseña incorrectos';
-    document.getElementById('login-pass').value = '';
+    var att=parseInt(sessionStorage.getItem(_LOGIN_ATT)||'0')+1;
+    if(att>=5){
+      sessionStorage.setItem(_LOGIN_LOCK,Date.now()+5*60*1000);
+      sessionStorage.removeItem(_LOGIN_ATT);
+      errEl.textContent='Demasiados intentos. Acceso bloqueado 5 min.';
+    } else {
+      sessionStorage.setItem(_LOGIN_ATT,att);
+      errEl.textContent='Contraseña incorrecta. Intento '+att+' de 5.';
+    }
+    document.getElementById('login-pass').value='';
     document.getElementById('login-pass').focus();
   }
 }
@@ -3909,10 +3974,23 @@ function cargarHashGuardado() {
 function cerrarSesion() {
   if (!confirm('¿Cerrar sesión?')) return;
   sessionStorage.removeItem(SESSION_KEY);
+  clearTimeout(_inTimer);
   ge('login-user').value = '';
   ge('login-pass').value = '';
   ge('login-err').textContent = '';
   ge('login-screen').style.display = 'flex';
+}
+
+var _inTimer=null;
+function resetInactivity(){
+  clearTimeout(_inTimer);
+  _inTimer=setTimeout(function(){
+    if(sessionStorage.getItem(SESSION_KEY)==='1'){
+      sessionStorage.removeItem(SESSION_KEY);
+      ge('login-screen').style.display='flex';
+      toast('Sesión cerrada por inactividad');
+    }
+  },30*60*1000);
 }
 
 function abrirPanelSeguridad() {
@@ -3948,6 +4026,8 @@ async function cambiarCredenciales() {
 ══════════════════════════════════════════════════ */
 function initApp() {
   checkAuth();
+  ['click','keydown','touchstart'].forEach(function(ev){document.addEventListener(ev,resetInactivity,{passive:true});});
+  if(sessionStorage.getItem(SESSION_KEY)==='1') resetInactivity();
   // Limpiar credenciales viejas de Netlify
   localStorage.removeItem('we_netlify_token');
   localStorage.removeItem('we_netlify_site_id');
