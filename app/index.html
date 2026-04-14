@@ -1060,6 +1060,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
 var KEY = 'we_v3';
 var clientes = [];
 var pagos = [];
+var _ghTokenEnc = null; // Token cifrado con AES-GCM (guardado en sync.json)
 var mensajes = [];
 var prospectos = [];
 var imagenesEj = {}; // Imágenes personalizadas por ejercicio — persisten entre sesiones
@@ -1117,6 +1118,7 @@ function cargar() {
     rutinas = d.rutinas || [];
     prospectos = d.prospectos || [];
     imagenesEj = d.imagenesEj || {};
+    if(d._gh_token_enc) _ghTokenEnc = d._gh_token_enc;
     if (!mensajes.length) mensajes = mensajesDefault();
     // Si habia mojibake, guardar version corregida en localStorage
     if (raw && fixedRaw !== raw) {
@@ -1126,7 +1128,7 @@ function cargar() {
   } catch(e) { clientes=[]; pagos=[]; mensajes=mensajesDefault(); rutinas=[]; prospectos=[]; }
 }
 function guardarTodo() {
-  var data = {clientes:clientes,pagos:pagos,mensajes:mensajes,rutinas:rutinas,prospectos:prospectos,imagenesEj:imagenesEj,_t:new Date().toISOString()};
+  var data = {clientes:clientes,pagos:pagos,mensajes:mensajes,rutinas:rutinas,prospectos:prospectos,imagenesEj:imagenesEj,_gh_token_enc:_ghTokenEnc||undefined,_t:new Date().toISOString()};
   localStorage.setItem(KEY, JSON.stringify(data));
   syncNube();
 }
@@ -1159,6 +1161,53 @@ function restoreData() {
 }
 
 /* ══════════════════════════════════════════════════
+   CIFRADO AES-GCM — token en la nube
+══════════════════════════════════════════════════ */
+async function _aesKey(hash){
+  var km=await crypto.subtle.importKey('raw',new TextEncoder().encode(hash),{name:'PBKDF2'},false,['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2',salt:new TextEncoder().encode('we-coaching-v1'),iterations:120000,hash:'SHA-256'},
+    km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function encryptGHToken(token){
+  if(!token||!AUTH_HASH)return null;
+  try{
+    var key=await _aesKey(AUTH_HASH);
+    var iv=crypto.getRandomValues(new Uint8Array(12));
+    var enc=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(token));
+    var out=new Uint8Array(12+enc.byteLength);
+    out.set(iv);out.set(new Uint8Array(enc),12);
+    return btoa(String.fromCharCode.apply(null,out));
+  }catch(e){return null;}
+}
+async function decryptGHToken(encB64){
+  if(!encB64||!AUTH_HASH)return null;
+  try{
+    var key=await _aesKey(AUTH_HASH);
+    var buf=Uint8Array.from(atob(encB64),function(c){return c.charCodeAt(0);});
+    var dec=await crypto.subtle.decrypt({name:'AES-GCM',iv:buf.slice(0,12)},key,buf.slice(12));
+    return new TextDecoder().decode(dec);
+  }catch(e){return null;}
+}
+
+// Descarga el token cifrado desde sync.json (repo público, sin auth) y lo descifra
+async function cargarTokenDesdeNube(){
+  try{
+    var r=await fetch('https://raw.githubusercontent.com/wilmin-estevez/Wilmincoaching/main/data/sync.json?_='+Date.now());
+    if(!r.ok)return false;
+    var d=await r.json();
+    if(!d._gh_token_enc)return false;
+    _ghTokenEnc=d._gh_token_enc;
+    var token=await decryptGHToken(d._gh_token_enc);
+    if(token&&token.length>10){
+      localStorage.setItem('we_gh_token',token);
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
+/* ══════════════════════════════════════════════════
    SINCRONIZACIÓN EN LA NUBE
 ══════════════════════════════════════════════════ */
 var _sOwner='wilmin-estevez',_sRepo='Wilmincoaching',_sData='data/sync.json',_sSes='data/session.json';
@@ -1182,7 +1231,8 @@ function syncNube(){
   clearTimeout(_sTimer);
   _sTimer=setTimeout(function(){
     _syncInd('☁️ Guardando...','var(--yw)');
-    var data={clientes:clientes,pagos:pagos,mensajes:mensajes,rutinas:rutinas,_t:new Date().toISOString(),_id:_sId};
+    var data={clientes:clientes,pagos:pagos,mensajes:mensajes,rutinas:rutinas,prospectos:prospectos,_t:new Date().toISOString(),_id:_sId};
+    if(_ghTokenEnc) data._gh_token_enc=_ghTokenEnc;
     _ghGet(_sData).then(function(f){
       return _ghPut(_sData,data,f?f.sha:null);
     }).then(function(r){
@@ -1207,6 +1257,7 @@ function cargarDesdeNube(cb){
       mensajes=d.mensajes||[];rutinas=d.rutinas||[];
       prospectos=d.prospectos||[];
       imagenesEj=d.imagenesEj||{};
+      if(d._gh_token_enc) _ghTokenEnc=d._gh_token_enc;
       if(!mensajes.length) mensajes=mensajesDefault();
       aplicarImagenesEj();
       localStorage.setItem(KEY,JSON.stringify(d));
@@ -4528,7 +4579,15 @@ async function loginCheck() {
     document.getElementById('login-screen').style.display='none';
     errEl.textContent='';
     resetInactivity();
-    if(!(localStorage.getItem('we_gh_token')||'').trim()){mostrarSetup();}
+    if(!(localStorage.getItem('we_gh_token')||'').trim()){
+      cargarTokenDesdeNube().then(function(ok){
+        if(ok){
+          cargarDesdeNube(function(actualizado){if(actualizado){renderTodo();renderMensajes();}});
+        } else {
+          mostrarSetup();
+        }
+      });
+    }
   } else {
     var att=parseInt(sessionStorage.getItem(_LOGIN_ATT)||'0')+1;
     if(att>=5){
@@ -4548,7 +4607,15 @@ function checkAuth() {
   cargarHashGuardado();
   if (sessionStorage.getItem(SESSION_KEY) === '1') {
     document.getElementById('login-screen').style.display = 'none';
-    if(!(localStorage.getItem('we_gh_token')||'').trim()){mostrarSetup();}
+    if(!(localStorage.getItem('we_gh_token')||'').trim()){
+      cargarTokenDesdeNube().then(function(ok){
+        if(ok){
+          cargarDesdeNube(function(actualizado){if(actualizado){renderTodo();renderMensajes();}});
+        } else {
+          mostrarSetup();
+        }
+      });
+    }
   }
 }
 
@@ -4572,8 +4639,9 @@ async function completarSetup(){
     if(!r.ok){errEl.textContent='Token inválido o sin acceso al repositorio.';return;}
     var file=await r.json();
     var syncData=JSON.parse(atob(file.content.replace(/\n/g,'')));
-    // Guardar token
+    // Guardar token y cifrar en la nube para futuros dispositivos
     localStorage.setItem('we_gh_token',token);
+    encryptGHToken(token).then(function(enc){if(enc)_ghTokenEnc=enc;});
     // Cargar datos del servidor
     if(syncData.clientes) clientes=syncData.clientes;
     if(syncData.prospectos) prospectos=syncData.prospectos;
@@ -4602,15 +4670,18 @@ function actualizarGHToken() {
   var token = (ge('seg-gh-token') && ge('seg-gh-token').value || '').trim();
   var okEl  = ge('seg-gh-ok');
   if (!token) { if(okEl) okEl.textContent = 'Pega el token primero.'; return; }
-  // Limpiar el token — eliminar espacios, saltos de línea y caracteres invisibles
   token = token.replace(/[\s\r\n]/g, '');
   localStorage.setItem('we_gh_token', token);
   ge('seg-gh-token').value = '';
+  // Cifrar y subir a la nube para que todos los dispositivos lo obtengan automáticamente
+  encryptGHToken(token).then(function(enc){
+    if(enc){ _ghTokenEnc=enc; syncNube(); }
+  });
   if (okEl) {
     okEl.style.color = 'var(--gn)';
-    okEl.textContent = 'Token guardado: ' + token.substring(0,8) + '... (' + token.length + ' chars) ✓';
+    okEl.textContent = 'Token guardado y cifrado en la nube ✓';
   }
-  toast('Token de GitHub actualizado ✓');
+  toast('Token guardado — disponible en todos tus dispositivos ✓');
 }
 
 function cargarHashGuardado() {
