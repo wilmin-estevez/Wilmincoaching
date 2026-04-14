@@ -162,6 +162,22 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
 
 /* RENOVACIONES */
 .rn-item{background:var(--bk3);border-radius:6px;padding:7px 10px;margin-bottom:4px;font-size:11px;display:flex;justify-content:space-between;}
+/* PROSPECTOS */
+.pros-bar{padding:10px 18px;border-bottom:1px solid var(--bk4);flex-shrink:0;display:none;}
+.pros-bar.on{display:block;}
+.pros-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;}
+.pros-title{font-size:10px;color:var(--or);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;flex:1;}
+.pros-count{background:var(--or);color:#fff;font-size:9px;font-weight:700;padding:1px 7px;border-radius:10px;}
+.pros-toggle{font-size:10px;color:var(--gy);}
+.pros-list{display:flex;flex-direction:column;gap:5px;}
+.pros-card{background:var(--bk3);border-radius:8px;padding:9px 12px;border-left:3px solid var(--or);display:flex;align-items:center;gap:10px;}
+.pros-info{flex:1;min-width:0;}
+.pros-name{font-size:12px;font-weight:600;color:var(--wh);}
+.pros-sub{font-size:10px;color:var(--gy);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pros-date{font-size:9px;color:var(--gy2);flex-shrink:0;}
+.pros-btns{display:flex;gap:4px;flex-shrink:0;}
+/* SIDEBAR BADGE */
+.sb-badge{margin-left:auto;background:var(--or);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center;display:none;}
 
 /* MENSAJES */
 .msg-card{background:var(--bk3);border-radius:7px;padding:9px 11px;margin-bottom:5px;border-left:3px solid var(--pu);cursor:pointer;}
@@ -419,7 +435,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
   <nav class="sb-nav">
     <button class="snav on" data-tab="t1" onclick="showTab('t1')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      Asesorados
+      <span>Asesorados</span>
+      <span class="sb-badge" id="badge-prospectos"></span>
     </button>
     <button class="snav" data-tab="t2" onclick="showTab('t2')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
@@ -456,6 +473,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
 
 <!-- ================== TAB 1 — ASESORADOS ================== -->
 <div id="t1" class="tab on">
+  <!-- PROSPECTOS / LEADS -->
+  <div class="pros-bar" id="pros-bar">
+    <div class="pros-hdr" onclick="toggleProspectos()">
+      <div class="pros-title">⚡ Solicitudes nuevas</div>
+      <span class="pros-count" id="pros-count">0</span>
+      <span class="pros-toggle" id="pros-toggle">▼</span>
+    </div>
+    <div class="pros-list" id="pros-list"></div>
+  </div>
   <div class="stats-bar">
     <div class="sb" onclick="setFiltro('todos',null)"><div class="sb-n" id="st-tot">0</div><div class="sb-l">Activos</div></div>
     <div class="sb" onclick="setFiltro('alertas',null)"><div class="sb-n" id="st-al" style="color:var(--rd)">0</div><div class="sb-l">Alertas</div></div>
@@ -900,6 +926,7 @@ var KEY = 'we_v3';
 var clientes = [];
 var pagos = [];
 var mensajes = [];
+var prospectos = [];
 var imagenesEj = {}; // Imágenes personalizadas por ejercicio — persisten entre sesiones
 var filtro = 'todos';
 var editId = null;
@@ -953,17 +980,18 @@ function cargar() {
     pagos = d.pagos || [];
     mensajes = d.mensajes || [];
     rutinas = d.rutinas || [];
+    prospectos = d.prospectos || [];
     imagenesEj = d.imagenesEj || {};
     if (!mensajes.length) mensajes = mensajesDefault();
     // Si habia mojibake, guardar version corregida en localStorage
     if (raw && fixedRaw !== raw) {
-      localStorage.setItem(KEY, JSON.stringify({clientes:clientes,pagos:pagos,mensajes:mensajes,rutinas:rutinas,imagenesEj:imagenesEj,_t:new Date().toISOString()}));
+      localStorage.setItem(KEY, JSON.stringify({clientes:clientes,pagos:pagos,mensajes:mensajes,rutinas:rutinas,prospectos:prospectos,imagenesEj:imagenesEj,_t:new Date().toISOString()}));
     }
     aplicarImagenesEj();
-  } catch(e) { clientes=[]; pagos=[]; mensajes=mensajesDefault(); rutinas=[]; }
+  } catch(e) { clientes=[]; pagos=[]; mensajes=mensajesDefault(); rutinas=[]; prospectos=[]; }
 }
 function guardarTodo() {
-  var data = {clientes:clientes,pagos:pagos,mensajes:mensajes,rutinas:rutinas,imagenesEj:imagenesEj,_t:new Date().toISOString()};
+  var data = {clientes:clientes,pagos:pagos,mensajes:mensajes,rutinas:rutinas,prospectos:prospectos,imagenesEj:imagenesEj,_t:new Date().toISOString()};
   localStorage.setItem(KEY, JSON.stringify(data));
   syncNube();
 }
@@ -1042,6 +1070,7 @@ function cargarDesdeNube(cb){
       var d=JSON.parse(fixMojibake(atob(f.content.replace(/\n/g,''))));
       clientes=d.clientes||[];pagos=d.pagos||[];
       mensajes=d.mensajes||[];rutinas=d.rutinas||[];
+      prospectos=d.prospectos||[];
       imagenesEj=d.imagenesEj||{};
       if(!mensajes.length) mensajes=mensajesDefault();
       aplicarImagenesEj();
@@ -1050,7 +1079,7 @@ function cargarDesdeNube(cb){
       cb(true);
     } else if(localData && localData.clientes && localData.clientes.length>0 && localT>nubeT){
       // Local más reciente → subir a la nube
-      var upload={clientes:clientes,pagos:pagos,mensajes:mensajes,rutinas:rutinas,_t:localData._t||new Date().toISOString(),_id:_sId};
+      var upload={clientes:clientes,pagos:pagos,mensajes:mensajes,rutinas:rutinas,prospectos:prospectos,_t:localData._t||new Date().toISOString(),_id:_sId};
       _ghPut(_sData,upload,f?f.sha:null).then(function(){_syncInd('☁️ Guardado ✓','var(--gn)');});
       cb(false);
     } else {
@@ -1216,13 +1245,22 @@ function setFiltro(f,el) {
 }
 function renderLista() {
   var cont=ge('lista');
-  var srch=(gv('srch')||'').toLowerCase();
+  var srch=(gv('srch')||'').toLowerCase().trim();
+  // Modo buscar-primero: sin búsqueda y sin filtro activo → pantalla limpia
+  if(!srch && filtro==='todos'){
+    cont.innerHTML='<div class="empty" style="padding:60px 20px">'+
+      '<div style="font-size:36px;margin-bottom:12px;opacity:.4">🔍</div>'+
+      '<div style="font-size:13px;font-weight:600;color:var(--wh);margin-bottom:4px">Busca un asesorado</div>'+
+      '<div style="font-size:11px;color:var(--gy)">Escribe el nombre en el campo de búsqueda</div>'+
+    '</div>';
+    return;
+  }
   var list=clientes.filter(function(c){return c.activo!==false;});
   if (filtro==='alertas') list=list.filter(function(c){return alertasCliente(c).length>0;});
   if (filtro==='pagos') list=list.filter(function(c){var n=diasHasta(c.paymentDate);return n!==null&&n<=7;});
   if (srch) list=list.filter(function(c){return c.name.toLowerCase().indexOf(srch)>=0;});
   if (!list.length){
-    cont.innerHTML='<div class="empty"><div class="empty-ico">👥</div><div>'+(srch?'Sin resultados':filtro==='todos'?'No hay asesorados todavía':'Todo al día 🔥')+'</div></div>';
+    cont.innerHTML='<div class="empty"><div class="empty-ico">👥</div><div>'+(srch?'Sin resultados para "'+srch+'"':filtro==='alertas'?'Sin alertas 🔥':'Sin pagos próximos')+'</div></div>';
     return;
   }
   cont.innerHTML=list.map(function(c){
@@ -1240,7 +1278,65 @@ function renderLista() {
     '</div>';
   }).join('');
 }
-function renderTodo(){renderStats();renderAlertas();renderLista();}
+function renderTodo(){renderStats();renderAlertas();renderLista();renderProspectos();}
+
+/* ══════════════════════════════════════════════════
+   PROSPECTOS / LEADS
+══════════════════════════════════════════════════ */
+var _prosOpen=true;
+function renderProspectos(){
+  var bar=ge('pros-bar');var list=ge('pros-list');var cnt=ge('pros-count');var badge=ge('badge-prospectos');
+  if(!bar||!list) return;
+  var pros=(prospectos||[]).filter(function(p){return p.estado!=='archivado';});
+  // Badge sidebar
+  if(badge){badge.textContent=pros.length;badge.style.display=pros.length?'':'none';}
+  if(!pros.length){bar.classList.remove('on');return;}
+  bar.classList.add('on');
+  if(cnt) cnt.textContent=pros.length;
+  if(!_prosOpen){list.style.display='none';ge('pros-toggle').textContent='▶';return;}
+  list.style.display='';ge('pros-toggle').textContent='▼';
+  list.innerHTML=pros.slice().reverse().map(function(p){
+    var goal={grasa:'Perder grasa',musculo:'Ganar músculo',ambos:'Transformación completa',habitos:'Mejorar hábitos'}[p.objetivo]||p.objetivo||'—';
+    var plan={arranque:'Arranque $37',transformacion:'Transformación $197',elite:'Elite $247','no-se':'Sin decidir'}[p.plan]||p.plan||'—';
+    return '<div class="pros-card">'+
+      '<div class="c-av" style="background:'+avatarColor(p.nombre)+';width:32px;height:32px;font-size:11px;flex-shrink:0">'+iniciales(p.nombre)+'</div>'+
+      '<div class="pros-info">'+
+        '<div class="pros-name">'+p.nombre+'</div>'+
+        '<div class="pros-sub">'+goal+' · '+plan+(p.telefono?' · '+p.telefono:'')+'</div>'+
+      '</div>'+
+      '<div class="pros-date">'+fmtFecha(p.fecha||p.id)+'</div>'+
+      '<div class="pros-btns">'+
+        '<button class="btn b-or b-xs" onclick="convertirProspecto(\''+p.id+'\')">Convertir</button>'+
+        '<button class="btn b-dk b-xs" onclick="archivarProspecto(\''+p.id+'\')">Archivar</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+function toggleProspectos(){
+  _prosOpen=!_prosOpen;
+  var list=ge('pros-list');var tog=ge('pros-toggle');
+  if(list) list.style.display=_prosOpen?'':'none';
+  if(tog) tog.textContent=_prosOpen?'▼':'▶';
+}
+function archivarProspecto(id){
+  var p=prospectos.find(function(x){return x.id===id;});
+  if(p){p.estado='archivado';guardarTodo();renderProspectos();}
+}
+function convertirProspecto(id){
+  var p=prospectos.find(function(x){return x.id===id;});
+  if(!p) return;
+  // Pre-llenar el modal de nuevo asesorado con los datos del prospecto
+  editId=null;
+  ge('mc-tit').textContent='Nuevo asesorado';ge('mc-sub').textContent='Desde solicitud de '+p.nombre;
+  sv('mc-nom',p.nombre||'');sv('mc-wa',p.telefono||'');sv('mc-notas',p.notas||'');
+  sv('mc-ini',hoy());
+  var planMap={arranque:'Arranque - $100',transformacion:'Transformación - $220',elite:'Elite - $380'};
+  sv('mc-plan',planMap[p.plan]||'Arranque - $100');
+  var objMap={grasa:'Pérdida de grasa',musculo:'Ganancia muscular',ambos:'Cambio de estilo de vida',habitos:'Cambio de estilo de vida'};
+  sv('mc-obj',objMap[p.objetivo]||'Pérdida de grasa');
+  p.estado='convertido';guardarTodo();renderProspectos();
+  abrirModal('mo-cliente');
+}
 
 /* ══════════════════════════════════════════════════
    CRUD CLIENTES

@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { ShimmerButton } from '@/components/magicui/shimmer-button'
 import { Input } from '@/components/ui/input'
@@ -13,12 +13,115 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
+// ── Configuración ──────────────────────────────────────────────────────────────
+// 1. Crea una cuenta gratis en formspree.io
+// 2. Crea un nuevo form y copia el ID (ej: "xpwzqkbl")
+// 3. Reemplaza el placeholder de abajo con tu ID real
+const FORMSPREE_ID = 'YOUR_FORM_ID' // ← reemplazar con tu ID de Formspree
+
+// ── Tipos ──────────────────────────────────────────────────────────────────────
+interface FormData {
+  nombre: string
+  telefono: string
+  objetivo: string
+  tiempo: string
+  plan: string
+  notas: string
+}
+
 export function ApplyForm() {
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  function handleSubmit(e: React.FormEvent) {
+  const formRef = useRef<HTMLFormElement>(null)
+
+  // Valores controlados para los Selects
+  const [objetivo, setObjetivo] = useState('')
+  const [tiempo, setTiempo] = useState('')
+  const [plan, setPlan] = useState('')
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setSubmitted(true)
+    setLoading(true)
+    setError('')
+
+    const fd = new FormData(e.currentTarget)
+    const data: FormData = {
+      nombre:   (fd.get('nombre')   as string) || '',
+      telefono: (fd.get('telefono') as string) || '',
+      objetivo,
+      tiempo,
+      plan,
+      notas:    (fd.get('notas')    as string) || '',
+    }
+
+    try {
+      // ── 1. Enviar a Formspree (notificación por email a Wilmin) ────────────
+      if (FORMSPREE_ID && FORMSPREE_ID !== 'YOUR_FORM_ID') {
+        await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(data),
+        })
+      }
+
+      // ── 2. Guardar prospecto en GitHub (llega directo al coaching app) ─────
+      // El token con scope "contents:write" se almacena en el coaching app.
+      // Aquí lo leemos del localStorage si el usuario abrió el app en este browser.
+      const ghToken = typeof window !== 'undefined'
+        ? localStorage.getItem('we_gh_token')
+        : null
+
+      if (ghToken) {
+        const OWNER = 'wilmin-estevez'
+        const REPO  = 'Wilmincoaching'
+        const PATH  = 'data/sync.json'
+
+        // Leer sync.json actual
+        const res = await fetch(
+          `https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`,
+          { headers: { Authorization: `token ${ghToken}`, Accept: 'application/vnd.github.v3+json' } }
+        )
+        if (res.ok) {
+          const file = await res.json()
+          const current = JSON.parse(atob(file.content.replace(/\n/g, '')))
+          const prospecto = {
+            id:       new Date().toISOString(),
+            fecha:    new Date().toISOString().split('T')[0],
+            nombre:   data.nombre,
+            telefono: data.telefono,
+            objetivo: data.objetivo,
+            plan:     data.plan,
+            tiempo:   data.tiempo,
+            notas:    data.notas,
+            estado:   'pendiente',
+            origen:   'landing',
+          }
+          current.prospectos = [...(current.prospectos || []), prospecto]
+          current._t = new Date().toISOString()
+
+          await fetch(
+            `https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`,
+            {
+              method: 'PUT',
+              headers: { Authorization: `token ${ghToken}`, 'Content-Type': 'application/json', Accept: 'application/vnd.github.v3+json' },
+              body: JSON.stringify({
+                message: 'prospecto: ' + data.nombre,
+                content: btoa(unescape(encodeURIComponent(JSON.stringify(current)))),
+                sha: file.sha,
+              }),
+            }
+          )
+        }
+      }
+
+      setSubmitted(true)
+    } catch {
+      setError('Hubo un problema. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -52,11 +155,12 @@ export function ApplyForm() {
           </BlurFade>
         ) : (
           <BlurFade delay={0.1} inView>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-[9px] tracking-[2px] uppercase text-orange">Tu nombre</Label>
                   <Input
+                    name="nombre"
                     required
                     placeholder="Nombre completo"
                     className="border-white/[0.08] bg-white/[0.03] text-brand-text placeholder:text-brand-subtle focus:border-orange"
@@ -65,6 +169,7 @@ export function ApplyForm() {
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-[9px] tracking-[2px] uppercase text-orange">WhatsApp / Teléfono</Label>
                   <Input
+                    name="telefono"
                     required
                     type="tel"
                     placeholder="+1 809 000 0000"
@@ -75,7 +180,7 @@ export function ApplyForm() {
 
               <div className="flex flex-col gap-1.5">
                 <Label className="text-[9px] tracking-[2px] uppercase text-orange">¿Cuál es tu objetivo principal?</Label>
-                <Select required>
+                <Select required onValueChange={setObjetivo}>
                   <SelectTrigger className="border-white/[0.08] bg-white/[0.03] text-brand-muted focus:border-orange">
                     <SelectValue placeholder="Selecciona tu meta" />
                   </SelectTrigger>
@@ -90,7 +195,7 @@ export function ApplyForm() {
 
               <div className="flex flex-col gap-1.5">
                 <Label className="text-[9px] tracking-[2px] uppercase text-orange">¿Cuánto tiempo llevas intentando lograr esto?</Label>
-                <Select required>
+                <Select required onValueChange={setTiempo}>
                   <SelectTrigger className="border-white/[0.08] bg-white/[0.03] text-brand-muted focus:border-orange">
                     <SelectValue placeholder="Selecciona una opción" />
                   </SelectTrigger>
@@ -105,7 +210,7 @@ export function ApplyForm() {
 
               <div className="flex flex-col gap-1.5">
                 <Label className="text-[9px] tracking-[2px] uppercase text-orange">¿Qué plan te interesa?</Label>
-                <Select required>
+                <Select required onValueChange={setPlan}>
                   <SelectTrigger className="border-white/[0.08] bg-white/[0.03] text-brand-muted focus:border-orange">
                     <SelectValue placeholder="Selecciona un plan" />
                   </SelectTrigger>
@@ -121,13 +226,16 @@ export function ApplyForm() {
               <div className="flex flex-col gap-1.5">
                 <Label className="text-[9px] tracking-[2px] uppercase text-orange">Cuéntame algo más (opcional)</Label>
                 <Textarea
+                  name="notas"
                   placeholder="Horario, condición física actual, lesiones, lo que quieras que sepa..."
                   className="min-h-[90px] resize-y border-white/[0.08] bg-white/[0.03] text-brand-text placeholder:text-brand-subtle focus:border-orange"
                 />
               </div>
 
-              <ShimmerButton type="submit" className="mt-2 w-full justify-center py-4 text-[14px]">
-                Enviar mi aplicación →
+              {error && <p className="text-center text-[12px] text-red-400">{error}</p>}
+
+              <ShimmerButton type="submit" disabled={loading} className="mt-2 w-full justify-center py-4 text-[14px]">
+                {loading ? 'Enviando...' : 'Enviar mi aplicación →'}
               </ShimmerButton>
               <p className="text-center text-[11px] text-brand-subtle">
                 Te contacto en menos de 24 horas. Sin spam. Solo resultados.
