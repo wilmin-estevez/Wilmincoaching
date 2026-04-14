@@ -21,7 +21,7 @@ const FORMSPREE_ID = 'YOUR_FORM_ID' // ← reemplazar con tu ID de Formspree
 
 // ── Google Form de intake (se muestra DESPUÉS del pago en planes Transformación/Elite)
 // Pega aquí el enlace de tu Google Form cuando lo tengas listo
-const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfSU56OB0fuEQ5h3srsgiI3_OfF6aKxVBU5DekbYT0YifogFg/viewform?usp=header'
+const GOOGLE_FORM_URL: string = 'https://docs.google.com/forms/d/e/1FAIpQLSfSU56OB0fuEQ5h3srsgiI3_OfF6aKxVBU5DekbYT0YifogFg/viewform?usp=header'
 
 // Planes que requieren el Google Form de intake (después del pago)
 const PLANES_CON_FORM = ['transformacion', 'elite']

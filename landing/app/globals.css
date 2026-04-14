@@ -1,3 +1,4 @@
+@import "tw-animate-css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,6 +15,27 @@
   --radius: 0.625rem;
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.1);
+  /* coaching dashboard */
+  --c-s1: #1C1C1F;
+  --c-s2: #232326;
+  --c-s3: #2A2A2E;
+  --c-or: #FF4500;
+  --c-or2: #CC3700;
+  --c-org: rgba(255,69,0,0.12);
+  --c-orb: rgba(255,69,0,0.20);
+  --c-wh: #F5F5F5;
+  --c-gy: #888888;
+  --c-gy2: #555555;
+  --c-gn: #22c55e;
+  --c-gna: rgba(34,197,94,0.12);
+  --c-yw: #f59e0b;
+  --c-ywa: rgba(245,158,11,0.12);
+  --c-rd: #ef4444;
+  --c-rda: rgba(239,68,68,0.12);
+  --c-bl: #3b82f6;
+  --c-bla: rgba(59,130,246,0.12);
+  --c-pu: #8b5cf6;
+  --c-pua: rgba(139,92,246,0.12);
 }
 
 *, *::before, *::after {
