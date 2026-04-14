@@ -162,6 +162,24 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
 
 /* RENOVACIONES */
 .rn-item{background:var(--bk3);border-radius:6px;padding:7px 10px;margin-bottom:4px;font-size:11px;display:flex;justify-content:space-between;}
+/* ── ETAPAS DEL CICLO ── */
+.etapa-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;}
+.etapa-onboarding{background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid rgba(59,130,246,.3);}
+.etapa-activo{background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.3);}
+.etapa-por-renovar{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3);}
+.etapa-inactivo{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);}
+/* ── FOTOS PROGRESO ── */
+.foto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px;}
+.foto-thumb{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--bk4);}
+.foto-thumb:hover{border-color:var(--or);}
+.foto-add{width:100%;aspect-ratio:1;background:var(--bk4);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:1.5px dashed rgba(255,69,0,.3);gap:3px;transition:border-color .15s;}
+.foto-add:hover{border-color:var(--or);}
+.foto-add-ico{font-size:18px;opacity:.5;}
+.foto-add-lbl{font-size:9px;color:var(--gy);}
+/* ── PIPELINE (etapas en sidebar stats) ── */
+.pipe-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid var(--bk4);font-size:11px;}
+.pipe-row:last-child{border-bottom:none;}
+.pipe-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 /* ── DASHBOARD HOY ── */
 .dash-section{margin-bottom:14px;}
 .dash-sec-t{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;display:flex;align-items:center;gap:5px;}
@@ -809,6 +827,30 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
   </div>
 </div>
 
+<!-- MODAL COBRAR / RECORDATORIO DE PAGO -->
+<div class="mo" id="mo-cobrar">
+  <div class="md" style="max-width:420px">
+    <div class="md-t" id="cobrar-nombre">Recordatorio de pago</div>
+    <div class="md-s" id="cobrar-sub">Mensaje generado automáticamente</div>
+    <div class="fg"><textarea id="cobrar-msg" rows="5" style="font-size:12px;line-height:1.6"></textarea></div>
+    <div class="fg"><label>Tu método de pago (se guarda para futuros cobros)</label>
+      <input id="cobrar-metodo" placeholder="Ej: Zelle: @wilmin · PayPal: paypal.me/wilmin">
+    </div>
+    <div class="md-acts">
+      <button class="btn b-dk" style="flex:1" onclick="cerrarModal('mo-cobrar')">Cancelar</button>
+      <button class="btn b-gn" style="flex:2" onclick="enviarCobro()">💬 Enviar por WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FOTO VIEWER -->
+<div class="mo" id="mo-foto-view" onclick="cerrarModal('mo-foto-view')">
+  <div style="max-width:500px;width:100%;position:relative">
+    <img id="foto-view-img" src="" style="width:100%;border-radius:10px;display:block">
+    <div id="foto-view-info" style="text-align:center;font-size:11px;color:var(--gy);margin-top:8px"></div>
+  </div>
+</div>
+
 <!-- MODAL CLIENTE -->
 <div class="mo" id="mo-cliente">
   <div class="md">
@@ -852,6 +894,20 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
     <div class="r2">
       <div class="fg"><label>Plan nutricional</label><input id="mc-nut" type="date"></div>
       <div class="fg"><label>Próxima sesión</label><input id="mc-ses" type="date"></div>
+    </div>
+    <div class="r2">
+      <div class="fg"><label>Referido por</label>
+        <select id="mc-referido"><option value="">— Nadie / directo —</option></select>
+      </div>
+      <div class="fg"><label>Etapa</label>
+        <select id="mc-etapa">
+          <option value="auto">Auto (calcular)</option>
+          <option value="onboarding">🔵 Onboarding</option>
+          <option value="activo">🟢 Activo</option>
+          <option value="por_renovar">🟡 Por renovar</option>
+          <option value="inactivo">🔴 Inactivo</option>
+        </select>
+      </div>
     </div>
     <div class="fg"><label>Notas / observaciones</label><textarea id="mc-notas" rows="2" placeholder="Lesiones, restricciones, detalles..."></textarea></div>
     <div class="md-acts">
@@ -1325,8 +1381,9 @@ function renderDashboardHoy(){
       var ts=item.tareas.filter(function(t){return t.n<=0;}).map(function(t){return t.lbl+(t.n===0?' · <b style="color:var(--rd)">Hoy</b>':' · '+Math.abs(t.n)+'d vencido');}).join(' &nbsp;·&nbsp; ');
       html+='<div class="dash-item dash-urgente">'+
         '<div class="c-av" style="background:'+avatarColor(item.c.name)+';width:32px;height:32px;font-size:11px;flex-shrink:0">'+iniciales(item.c.name)+'</div>'+
-        '<div style="flex:1;min-width:0"><div class="dash-name">'+item.c.name+'</div><div class="dash-task">'+ts+'</div></div>'+
+        '<div style="flex:1;min-width:0"><div class="dash-name" style="display:flex;align-items:center;gap:5px">'+item.c.name+'<span class="etapa-badge '+ETAPA_CFG[getEtapa(item.c)].cls+'">'+ETAPA_CFG[getEtapa(item.c)].lbl+'</span></div><div class="dash-task">'+ts+'</div></div>'+
         '<div style="display:flex;gap:3px">'+
+          (item.c.phone?'<button class="btn b-yw b-xs" onclick="abrirCobrar(\''+item.c.id+'\')">💳</button>':'')+
           (wa?'<button class="btn b-gn b-xs" onclick="abrirWARapido(\''+item.c.id+'\')">💬</button>':'')+
           '<button class="btn b-or b-xs" onclick="abrirPerfil(\''+item.c.id+'\')">Ver</button>'+
         '</div></div>';
@@ -1379,10 +1436,17 @@ function renderLista() {
     var pills=als.length?als.map(function(a){return '<span class="pl '+(a.n<=0?'pl-r':'pl-y')+'">'+a.lbl+'</span>';}).join(''):'<span class="pl pl-g">Al día</span>';
     return '<div class="c-row">'+
       '<div class="c-av" style="background:'+avatarColor(c.name)+'">'+iniciales(c.name)+'</div>'+
-      '<div class="c-info"><div class="c-name">'+c.name+'</div><div class="c-sub">'+c.plan+(c.goal?' · '+c.goal:'')+'</div></div>'+
+      '<div class="c-info">'+
+        '<div style="display:flex;align-items:center;gap:6px">'+
+          '<div class="c-name">'+c.name+'</div>'+
+          '<span class="etapa-badge '+ETAPA_CFG[getEtapa(c)].cls+'">'+ETAPA_CFG[getEtapa(c)].lbl+'</span>'+
+        '</div>'+
+        '<div class="c-sub">'+c.plan+(c.goal?' · '+c.goal:'')+'</div>'+
+      '</div>'+
       '<div class="c-pills">'+pills+'</div>'+
       '<div class="c-btns">'+
         (c.phone?'<button class="btn b-gn b-sm" onclick="abrirWARapido(\''+c.id+'\')" title="WhatsApp rápido">💬</button>':'')+
+        (c.phone?'<button class="btn b-yw b-sm" onclick="abrirCobrar(\''+c.id+'\')" title="Cobrar">💳</button>':'')+
         '<button class="btn b-pu b-sm" onclick="abrirNotaRapida(\''+c.id+'\')" title="Nota rápida">📝</button>'+
         '<button class="btn b-or b-sm" onclick="abrirPerfil(\''+c.id+'\')">Ver perfil</button>'+
       '</div>'+
@@ -1465,6 +1529,119 @@ function guardarNotaRapida(){
 }
 
 /* ══════════════════════════════════════════════════
+   ETAPAS DEL CICLO
+══════════════════════════════════════════════════ */
+function getEtapa(c){
+  if(c.etapa&&c.etapa!=='auto') return c.etapa;
+  var n=diasHasta(c.startDate||c.ini||null);
+  var nPlan=diasHasta(c.paymentDate);
+  var diasIni=c.startDate?Math.floor((new Date()-new Date(c.startDate))/(86400000)):999;
+  if(diasIni<0) return 'onboarding';
+  if(diasIni<=14) return 'onboarding';
+  if(nPlan!==null&&nPlan<=14&&nPlan>=0) return 'por_renovar';
+  if(nPlan!==null&&nPlan<0) return 'inactivo';
+  return 'activo';
+}
+var ETAPA_CFG={
+  onboarding:{lbl:'Onboarding',cls:'etapa-onboarding',dot:'#3b82f6'},
+  activo:{lbl:'Activo',cls:'etapa-activo',dot:'#22c55e'},
+  por_renovar:{lbl:'Por renovar',cls:'etapa-por-renovar',dot:'#f59e0b'},
+  inactivo:{lbl:'Inactivo',cls:'etapa-inactivo',dot:'#ef4444'}
+};
+
+/* ══════════════════════════════════════════════════
+   FACTURACIÓN / COBROS
+══════════════════════════════════════════════════ */
+var _cobrarClienteId=null;
+function abrirCobrar(id){
+  var c=clientes.find(function(x){return x.id===id;}); if(!c) return;
+  _cobrarClienteId=id;
+  var metodo=localStorage.getItem('we_metodo_pago')||'';
+  ge('cobrar-metodo').value=metodo;
+  ge('cobrar-nombre').textContent='Cobrar — '+c.name;
+  var precio=precioPlan(c.plan)||0;
+  var vence=c.paymentDate?fmtFecha(c.paymentDate):'próximamente';
+  var nombre=c.name.split(' ')[0];
+  var msg='Hola '+nombre+' 👋\n\nTu plan *'+c.plan+'* vence el *'+vence+'*.\n\nPara continuar con tu proceso y mantener tu progreso, el pago de *$'+precio+'* es necesario antes de esa fecha.\n'+(metodo?'\n💳 *Pago:* '+metodo+'\n':'')+''\n'¿Alguna pregunta? Aquí estoy. 💪';
+  ge('cobrar-sub').textContent='Plan: '+c.plan+' · $'+precio+' · Vence: '+vence;
+  ge('cobrar-msg').value=msg;
+  abrirModal('mo-cobrar');
+}
+function enviarCobro(){
+  var c=clientes.find(function(x){return x.id===_cobrarClienteId;}); if(!c||!c.phone) return;
+  var metodo=(ge('cobrar-metodo').value||'').trim();
+  if(metodo) localStorage.setItem('we_metodo_pago',metodo);
+  var msg=ge('cobrar-msg').value||'';
+  var url='https://wa.me/'+c.phone.replace(/\D/g,'')+'?text='+encodeURIComponent(msg);
+  window.open(url,'_blank');
+  cerrarModal('mo-cobrar');
+  toast('Recordatorio enviado ✓');
+}
+
+/* ══════════════════════════════════════════════════
+   FOTOS DE PROGRESO
+══════════════════════════════════════════════════ */
+function _fotosKey(id){return 'we_fotos_'+id;}
+function getFotos(id){
+  try{return JSON.parse(localStorage.getItem(_fotosKey(id))||'[]');}catch(e){return [];}
+}
+function guardarFotos(id,fotos){
+  localStorage.setItem(_fotosKey(id),JSON.stringify(fotos));
+}
+function renderFotosGrid(id){
+  var fotos=getFotos(id);
+  var html='<div class="foto-grid">';
+  fotos.forEach(function(f,i){
+    html+='<div style="position:relative">'+
+      '<img class="foto-thumb" src="'+f.dataUrl+'" title="'+fmtFecha(f.date)+'" onclick="verFoto(\''+f.dataUrl+'\',\''+f.date+'\')">'+
+      '<div style="position:absolute;top:3px;right:3px"><button onclick="eliminarFoto(\''+id+'\','+i+')" style="background:rgba(0,0,0,.7);border:none;color:#fff;border-radius:4px;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button></div>'+
+      '<div style="font-size:8px;color:var(--gy);text-align:center;margin-top:2px">'+fmtFecha(f.date)+'</div>'+
+    '</div>';
+  });
+  html+='<div class="foto-add" onclick="subirFotoProgreso(\''+id+'\')"><div class="foto-add-ico">📷</div><div class="foto-add-lbl">Agregar</div></div>';
+  html+='</div>';
+  return fotos.length?html:'<div class="foto-add" style="height:56px;border-radius:7px;width:100%;margin-top:4px" onclick="subirFotoProgreso(\''+id+'\')"><div style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--gy)"><span>📷</span>Agregar primera foto de progreso</div></div>';
+}
+function subirFotoProgreso(id){
+  var inp=document.createElement('input');
+  inp.type='file';inp.accept='image/*';
+  inp.onchange=function(e){
+    var file=e.target.files[0];if(!file)return;
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      // Comprimir con canvas
+      var img=new Image();
+      img.onload=function(){
+        var maxW=600,maxH=800,r=Math.min(maxW/img.width,maxH/img.height,1);
+        var cv=document.createElement('canvas');cv.width=img.width*r;cv.height=img.height*r;
+        cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+        var dataUrl=cv.toDataURL('image/jpeg',0.75);
+        var fotos=getFotos(id);
+        fotos.push({date:hoy(),dataUrl:dataUrl});
+        guardarFotos(id,fotos);
+        abrirPerfil(id); // refrescar perfil
+        toast('Foto guardada ✓');
+      };
+      img.src=ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
+}
+function eliminarFoto(clienteId,idx){
+  if(!confirm('¿Eliminar esta foto?'))return;
+  var fotos=getFotos(clienteId);
+  fotos.splice(idx,1);
+  guardarFotos(clienteId,fotos);
+  abrirPerfil(clienteId);
+}
+function verFoto(dataUrl,fecha){
+  ge('foto-view-img').src=dataUrl;
+  ge('foto-view-info').textContent=fmtFecha(fecha);
+  abrirModal('mo-foto-view');
+}
+
+/* ══════════════════════════════════════════════════
    PROSPECTOS / LEADS
 ══════════════════════════════════════════════════ */
 var _prosOpen=true;
@@ -1525,12 +1702,21 @@ function convertirProspecto(id){
 /* ══════════════════════════════════════════════════
    CRUD CLIENTES
 ══════════════════════════════════════════════════ */
+function _poblarReferidoSelect(excluirId){
+  var sel=ge('mc-referido'); if(!sel) return;
+  sel.innerHTML='<option value="">— Nadie / directo —</option>';
+  clientes.filter(function(c){return c.id!==excluirId;}).forEach(function(c){
+    var opt=document.createElement('option');opt.value=c.id;opt.textContent=c.name;sel.appendChild(opt);
+  });
+}
 function abrirModalCliente() {
   editId=null;
   ge('mc-tit').textContent='Nuevo asesorado'; ge('mc-sub').textContent='Completa los datos del nuevo cliente';
   ['mc-nom','mc-wa','mc-notas','mc-kg','mc-cm','mc-edad'].forEach(function(id){sv(id,'');});
   sv('mc-plan','Arranque - $100'); sv('mc-obj','Pérdida de grasa'); sv('mc-sex','m');
   sv('mc-ini',hoy()); ['mc-pago','mc-ci','mc-nut','mc-ses'].forEach(function(id){sv(id,'');});
+  sv('mc-etapa','auto');
+  _poblarReferidoSelect(null);
   abrirModal('mo-cliente');
 }
 function editarCliente(id) {
@@ -1543,6 +1729,9 @@ function editarCliente(id) {
   sv('mc-nut',c.nutritionDate||''); sv('mc-ses',c.sessionDate||'');
   sv('mc-notas',c.notes||''); sv('mc-kg',''); sv('mc-cm',c.altura||'');
   sv('mc-edad',c.edad||''); sv('mc-sex',c.sexo||'m');
+  sv('mc-etapa',c.etapa||'auto');
+  _poblarReferidoSelect(id);
+  sv('mc-referido',c.referidoPor||'');
   abrirModal('mo-cliente');
 }
 function guardarCliente() {
@@ -1556,12 +1745,14 @@ function guardarCliente() {
     altura:parseFloat(gv('mc-cm'))||0, edad:parseInt(gv('mc-edad'))||0, sexo:gv('mc-sex')||'m',
     startDate:gv('mc-ini'), paymentDate:gv('mc-pago'), checkinDate:gv('mc-ci'),
     nutritionDate:gv('mc-nut'), sessionDate:gv('mc-ses'), notes:gv('mc-notas').trim(),
+    etapa:gv('mc-etapa')||'auto', referidoPor:gv('mc-referido')||'',
     activo:true, weights:pesos,
     checklist:ex?(ex.checklist||{}):{},
     checkins:ex?(ex.checkins||[]):[],
     renewals:ex?(ex.renewals||[]):[],
     nutritionPlans:ex?(ex.nutritionPlans||[]):[],
     rutinaIds:ex?(ex.rutinaIds||[]):[],
+    quickNotes:ex?(ex.quickNotes||[]):[],
     updatedAt:hoy()
   };
   if (editId){var i=clientes.findIndex(function(c){return c.id===editId;});if(i>=0)clientes[i]=cli;}
@@ -1653,7 +1844,8 @@ function abrirPerfil(id) {
     '<div class="pf-hdr">'+
       '<div class="pf-av" style="background:'+avatarColor(c.name)+'">'+iniciales(c.name)+'</div>'+
       '<div>'+
-        '<div class="pf-name">'+c.name+'</div>'+
+        '<div style="display:flex;align-items:center;gap:7px"><div class="pf-name">'+c.name+'</div>'+
+          '<span class="etapa-badge '+ETAPA_CFG[getEtapa(c)].cls+'">'+ETAPA_CFG[getEtapa(c)].lbl+'</span></div>'+
         '<div class="pf-sub">'+c.plan+' · '+(c.goal||'—')+' · Progreso: '+pr+'%'+
           (imcVal?' · IMC: '+imcVal:'')+
           (adh!==null?' · Adherencia: '+adh+'/100':'')+'</div>'+
@@ -1664,6 +1856,7 @@ function abrirPerfil(id) {
         '<button class="btn b-or b-sm" onclick="abrirModalCL(\''+c.id+'\')">✅ '+cls+'/8</button>'+
         '<button class="btn b-gh b-sm" onclick="abrirModalRenovar(\''+c.id+'\')">🔄 Renovar</button>'+
         (wa?'<button class="btn b-gn b-sm" onclick="abrirWARapido(\''+c.id+'\')">💬 WhatsApp</button>':'')+
+        (c.phone?'<button class="btn b-yw b-sm" onclick="abrirCobrar(\''+c.id+'\')">💳 Cobrar</button>':'')+
         '<button class="btn b-dk b-sm" onclick="editarCliente(\''+c.id+'\')">Editar</button>'+
         '<button class="btn b-dk b-sm" onclick="cerrarPerfil()">✕</button>'+
       '</div>'+
@@ -1681,7 +1874,7 @@ function abrirPerfil(id) {
           '<div><span style="color:var(--gy)">Altura</span><br>'+(c.altura?c.altura+' cm':'—')+'</div>'+
           '<div><span style="color:var(--gy)">Edad</span><br>'+(c.edad?c.edad+' años':'—')+'</div>'+
           '<div><span style="color:var(--gy)">Sexo</span><br>'+(c.sexo==='m'?'Masculino':c.sexo==='f'?'Femenino':'—')+'</div>'+
-        '</div>'+
+          (c.referidoPor?'<div style="grid-column:1/-1"><span style="color:var(--gy)">Referido por</span><br>'+(clientes.find(function(x){return x.id===c.referidoPor;})||{name:'—'}).name+'</div>':'')+'</div>'+
         (imcVal?
           '<div style="background:var(--bk3);border-radius:6px;padding:7px 10px;display:flex;justify-content:space-between;align-items:center">'+
             '<span style="font-size:11px;color:var(--gy)">IMC</span>'+
@@ -1730,6 +1923,11 @@ function abrirPerfil(id) {
         rtHtml+
       '</div>'+
       '<div class="pf-card"><div class="pf-ct">Renovaciones</div>'+rens+'</div>'+
+      '<div class="pf-card">'+
+        '<div class="pf-ct"><span>Fotos progreso ('+(getFotos(c.id)||[]).length+')</span>'+
+          '<button class="btn b-bl b-xs" onclick="subirFotoProgreso(\''+c.id+'\')">📷 Agregar</button></div>'+
+        renderFotosGrid(c.id)+
+      '</div>'+
       '<div class="pf-card">'+
         '<div class="pf-ct"><span>Notas rápidas ('+(c.quickNotes||[]).length+')</span>'+
           '<button class="btn b-pu b-xs" onclick="abrirNotaRapida(\''+c.id+'\')">+ Nota</button></div>'+
@@ -1952,6 +2150,46 @@ function renderMetricas() {
     return '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span>'+k+'</span><span style="color:var(--or)">'+planCount[k]+' ('+pct+'%)</span></div>'+
       '<div style="height:6px;background:var(--bk4);border-radius:3px"><div style="width:'+pct+'%;height:100%;background:var(--or);border-radius:3px"></div></div></div>';
   }).join('')||'<div style="color:var(--gy);font-size:11px">Sin datos</div>';
+
+  // Pipeline de etapas
+  var etapas=['onboarding','activo','por_renovar','inactivo'];
+  var pipeHtml=etapas.map(function(e){
+    var cnt=act.filter(function(c){return getEtapa(c)===e;}).length;
+    var cfg=ETAPA_CFG[e];
+    return '<div class="pipe-row"><div class="pipe-dot" style="background:'+cfg.dot+'"></div>'+
+      '<span style="flex:1">'+cfg.lbl+'</span>'+
+      '<span style="font-weight:600;color:var(--wh)">'+cnt+'</span>'+
+    '</div>';
+  }).join('');
+  // Referidos
+  var refTotal=clientes.filter(function(c){return c.referidoPor;}).length;
+  var topRef=[];
+  clientes.forEach(function(c){
+    var n=clientes.filter(function(x){return x.referidoPor===c.id;}).length;
+    if(n>0) topRef.push({name:c.name,n:n});
+  });
+  topRef.sort(function(a,b){return b.n-a.n;});
+  var refHtml=topRef.length?topRef.slice(0,5).map(function(r){
+    return '<div class="pipe-row"><span style="flex:1">'+r.name+'</span><span style="color:var(--or);font-weight:600">'+r.n+' ref.</span></div>';
+  }).join(''):'<div style="font-size:11px;color:var(--gy)">Sin referidos registrados</div>';
+
+  // Inject into metrics grid (after existing cards)
+  var extraHtml='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">'+
+    '<div style="background:var(--bk2);border:1px solid var(--bk4);border-radius:10px;padding:14px">'+
+      '<div style="font-size:10px;color:var(--or);letter-spacing:2px;text-transform:uppercase;font-weight:600;margin-bottom:10px">Pipeline de clientes</div>'+
+      pipeHtml+
+    '</div>'+
+    '<div style="background:var(--bk2);border:1px solid var(--bk4);border-radius:10px;padding:14px">'+
+      '<div style="font-size:10px;color:var(--or);letter-spacing:2px;text-transform:uppercase;font-weight:600;margin-bottom:6px">Top referidos <span style="color:var(--gy);font-weight:400">('+refTotal+' clientes referidos)</span></div>'+
+      refHtml+
+    '</div>'+
+  '</div>';
+  var metExtra=ge('met-extra');
+  if(!metExtra){
+    var t4=ge('t4');
+    var div=document.createElement('div');div.id='met-extra';div.innerHTML=extraHtml;
+    t4.appendChild(div);
+  } else {metExtra.innerHTML=extraHtml;}
 
   // Pagos recientes
   ge('met-pagos').innerHTML=pagos.slice().reverse().slice(0,8).map(function(p){
