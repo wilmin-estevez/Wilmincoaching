@@ -1685,7 +1685,7 @@ function abrirCobrar(id){
   var precio=precioPlan(c.plan)||0;
   var vence=c.paymentDate?fmtFecha(c.paymentDate):'próximamente';
   var nombre=c.name.split(' ')[0];
-  var msg='Hola '+nombre+' 👋\n\nTu plan *'+c.plan+'* vence el *'+vence+'*.\n\nPara continuar con tu proceso y mantener tu progreso, el pago de *$'+precio+'* es necesario antes de esa fecha.\n'+(metodo?'\n💳 *Pago:* '+metodo+'\n':'')+''\n'¿Alguna pregunta? Aquí estoy. 💪';
+  var msg='Hola '+nombre+' 👋\n\nTu plan *'+c.plan+'* vence el *'+vence+'*.\n\nPara continuar con tu proceso y mantener tu progreso, el pago de *$'+precio+'* es necesario antes de esa fecha.\n'+(metodo?'\n💳 *Pago:* '+metodo+'\n':'')+'\n¿Alguna pregunta? Aquí estoy. 💪';
   ge('cobrar-sub').textContent='Plan: '+c.plan+' · $'+precio+' · Vence: '+vence;
   ge('cobrar-msg').value=msg;
   abrirModal('mo-cobrar');
