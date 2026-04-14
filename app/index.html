@@ -110,6 +110,32 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
 .c-btns{display:flex;gap:4px;flex-shrink:0;}
 .empty{text-align:center;padding:48px 20px;color:var(--gy);}
 
+/* ── SIDEBAR MÓVIL ── */
+.sb-toggle{display:none;background:transparent;border:none;color:var(--wh);font-size:20px;cursor:pointer;padding:2px 6px;line-height:1;flex-shrink:0;}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:199;}
+@media(max-width:800px){
+  .sb-toggle{display:flex;align-items:center;}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:200;transform:translateX(-100%);transition:transform .22s ease;}
+  .sidebar.mob-open{transform:translateX(0);box-shadow:4px 0 24px rgba(0,0,0,.5);}
+  .sb-overlay.on{display:block;}
+  .topbar{padding:0 12px;}
+  .list-area{padding:8px 12px;}
+  .t1-bar{padding:8px 12px;}
+}
+
+/* ── TIMELINE ACTIVIDAD ── */
+.tl-item{display:flex;gap:9px;padding:7px 0;border-bottom:.5px solid var(--bk4);}
+.tl-item:last-child{border-bottom:none;}
+.tl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.tl-body{flex:1;min-width:0;}
+.tl-txt{font-size:12px;color:var(--wh);}
+.tl-date{font-size:10px;color:var(--gy);margin-top:2px;}
+
+/* ── MÉTRICAS AVANZADAS ── */
+.met-growth-wrap{background:var(--bk2);border:1px solid var(--bk4);border-radius:10px;padding:14px;margin-top:12px;}
+.proj-item{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:.5px solid var(--bk4);font-size:11px;}
+.proj-item:last-child{border-bottom:none;}
+
 /* ── OVERLAY / PERFIL ── */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:100;overflow-y:auto;padding:14px;display:none;}
 .ov.on{display:block;}
@@ -492,7 +518,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
 
 <div class="app-shell">
 <!-- SIDEBAR -->
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
   <div class="sb-top">
     <div class="sb-logo">
       <div class="sb-bar"></div>
@@ -533,6 +559,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
 <!-- MAIN -->
 <div class="main-area">
   <div class="topbar">
+    <button class="sb-toggle" onclick="toggleSidebar()" title="Menú">☰</button>
     <div class="topbar-title" id="topbar-title">Asesorados</div>
     <button class="btn b-or b-sm" id="btn-nuevo-asesorado" onclick="abrirModalCliente()">+ Nuevo asesorado</button>
   </div>
@@ -635,7 +662,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
         <div class="r2">
           <div class="fg"><label>Plan</label>
             <select id="n-plan" onchange="nutActualizar()">
-              <option>Arranque — $100</option><option>Transformación — $220</option><option>Elite — $380</option>
+              <option>Arranque — $37</option><option>Transformación 8 Semanas — $197</option><option>Elite Mensual — $247</option>
             </select>
           </div>
           <div class="fg"><label>Días entreno/sem</label>
@@ -892,9 +919,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
     <div class="r2">
       <div class="fg"><label>Plan</label>
         <select id="mc-plan">
-          <option value="Arranque - $100">Arranque — $100</option>
-          <option value="Transformación - $220">Transformación — $220</option>
-          <option value="Elite - $380">Elite — $380</option>
+          <option value="Arranque - $37">Arranque — $37</option>
+          <option value="Transformación 8 Semanas - $197">Transformación 8 Semanas — $197</option>
+          <option value="Elite Mensual - $247">Elite Mensual — $247</option>
         </select>
       </div>
       <div class="fg"><label>Objetivo</label>
@@ -1008,9 +1035,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
     <div id="mr-info" style="background:var(--bk3);border-radius:7px;padding:9px 11px;margin-bottom:11px;font-size:12px;"></div>
     <div class="fg"><label>Nuevo plan</label>
       <select id="mr-plan">
-        <option value="Arranque - $100">Arranque — $100</option>
-        <option value="Transformación - $220">Transformación — $220</option>
-        <option value="Elite - $380">Elite — $380</option>
+        <option value="Arranque - $37">Arranque — $37</option>
+        <option value="Transformación 8 Semanas - $197">Transformación 8 Semanas — $197</option>
+        <option value="Elite Mensual - $247">Elite Mensual — $247</option>
       </select>
     </div>
     <div class="r2">
@@ -1052,6 +1079,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
   <div class="pf-wrap" id="pf-cont"></div>
 </div>
 
+<div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
 <div class="toast" id="toast"></div>
 <script>
 /* ══════════════════════════════════════════════════
@@ -1158,6 +1186,20 @@ function restoreData() {
     reader.readAsText(file);
   };
   inp.click();
+}
+
+/* ══════════════════════════════════════════════════
+   SIDEBAR MÓVIL
+══════════════════════════════════════════════════ */
+function toggleSidebar(){
+  var s=ge('sidebar'),o=ge('sb-overlay');
+  if(s.classList.contains('mob-open')){closeSidebar();}
+  else{s.classList.add('mob-open');o.classList.add('on');}
+}
+function closeSidebar(){
+  var s=ge('sidebar'),o=ge('sb-overlay');
+  if(s){s.classList.remove('mob-open');}
+  if(o){o.classList.remove('on');}
 }
 
 /* ══════════════════════════════════════════════════
@@ -1382,6 +1424,7 @@ function showTab(id) {
   document.querySelectorAll('.snav').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===id);});
   var tEl=ge('topbar-title'); if(tEl) tEl.textContent=TAB_TITLES[id]||'';
   var nb=ge('btn-nuevo-asesorado'); if(nb) nb.style.display=(id==='t1')?'':'none';
+  closeSidebar();
   if (id==='t2') renderNutBtns();
   if (id==='t3') renderRutBtns();
   if (id==='t4') renderMetricas();
@@ -1667,6 +1710,47 @@ function getFotos(id){
 }
 function guardarFotos(id,fotos){
   localStorage.setItem(_fotosKey(id),JSON.stringify(fotos));
+  syncFotosNube();
+}
+
+var _fotosSyncTimer=null;
+var _FOTOS_PATH='data/fotos.json';
+
+function syncFotosNube(){
+  clearTimeout(_fotosSyncTimer);
+  _fotosSyncTimer=setTimeout(function(){
+    var tk=(localStorage.getItem('we_gh_token')||'').trim();
+    if(!tk)return;
+    var all={_t:new Date().toISOString()};
+    clientes.forEach(function(c){
+      var f=getFotos(c.id);
+      if(f.length>0)all[c.id]=f;
+    });
+    _ghGet(_FOTOS_PATH).then(function(f){
+      return _ghPut(_FOTOS_PATH,all,f?f.sha:null);
+    }).catch(function(){});
+  },4000);
+}
+
+function cargarFotosDesdeNube(cb){
+  var tk=(localStorage.getItem('we_gh_token')||'').trim();
+  if(!tk){if(cb)cb();return;}
+  _ghGet(_FOTOS_PATH).then(function(f){
+    if(!f){if(cb)cb();return;}
+    try{
+      var d=JSON.parse(atob(f.content.replace(/\n/g,'')));
+      Object.keys(d).forEach(function(id){
+        if(id==='_t')return;
+        if(!Array.isArray(d[id])||d[id].length===0)return;
+        var local=getFotos(id);
+        // Nube gana si tiene más fotos o las mismas
+        if(d[id].length>=local.length){
+          localStorage.setItem(_fotosKey(id),JSON.stringify(d[id]));
+        }
+      });
+    }catch(e){}
+    if(cb)cb();
+  }).catch(function(){if(cb)cb();});
 }
 function renderFotosGrid(id){
   var fotos=getFotos(id);
@@ -1771,8 +1855,8 @@ function convertirProspecto(id){
   ge('mc-tit').textContent='Nuevo asesorado';ge('mc-sub').textContent='Desde solicitud de '+p.nombre;
   sv('mc-nom',p.nombre||'');sv('mc-wa',p.telefono||'');sv('mc-notas',p.notas||'');
   sv('mc-ini',hoy());
-  var planMap={arranque:'Arranque - $100',transformacion:'Transformación - $220',elite:'Elite - $380'};
-  sv('mc-plan',planMap[p.plan]||'Arranque - $100');
+  var planMap={arranque:'Arranque - $37',transformacion:'Transformación 8 Semanas - $197',elite:'Elite Mensual - $247'};
+  sv('mc-plan',planMap[p.plan]||'Arranque - $37');
   var objMap={grasa:'Pérdida de grasa',musculo:'Ganancia muscular',ambos:'Cambio de estilo de vida',habitos:'Cambio de estilo de vida'};
   sv('mc-obj',objMap[p.objetivo]||'Pérdida de grasa');
   p.estado='convertido';guardarTodo();renderProspectos();
@@ -1793,7 +1877,7 @@ function abrirModalCliente() {
   editId=null;
   ge('mc-tit').textContent='Nuevo asesorado'; ge('mc-sub').textContent='Completa los datos del nuevo cliente';
   ['mc-nom','mc-wa','mc-notas','mc-kg','mc-cm','mc-edad'].forEach(function(id){sv(id,'');});
-  sv('mc-plan','Arranque - $100'); sv('mc-obj','Pérdida de grasa'); sv('mc-sex','m');
+  sv('mc-plan','Arranque - $37'); sv('mc-obj','Pérdida de grasa'); sv('mc-sex','m');
   sv('mc-ini',hoy()); ['mc-pago','mc-ci','mc-nut','mc-ses'].forEach(function(id){sv(id,'');});
   sv('mc-etapa','auto');
   _poblarReferidoSelect(null);
@@ -1803,7 +1887,7 @@ function editarCliente(id) {
   var c=clientes.find(function(x){return x.id===id;}); if(!c)return;
   editId=id;
   ge('mc-tit').textContent='Editar asesorado'; ge('mc-sub').textContent='Modifica los datos';
-  sv('mc-nom',c.name||''); sv('mc-wa',c.phone||''); sv('mc-plan',c.plan||'Arranque - $100');
+  sv('mc-nom',c.name||''); sv('mc-wa',c.phone||''); sv('mc-plan',c.plan||'Arranque - $37');
   sv('mc-obj',c.goal||'Pérdida de grasa'); sv('mc-ini',c.startDate||'');
   sv('mc-pago',c.paymentDate||''); sv('mc-ci',c.checkinDate||'');
   sv('mc-nut',c.nutritionDate||''); sv('mc-ses',c.sessionDate||'');
@@ -1920,6 +2004,27 @@ function abrirPerfil(id) {
     return '<div class="rn-item"><span style="color:var(--wh);font-weight:600">'+r.plan+'</span><span style="color:var(--gy)">'+fmtFecha(r.renewedAt)+'</span></div>';
   }).join('')||'<div style="font-size:11px;color:var(--gy)">Sin renovaciones</div>';
 
+  // Timeline de actividad
+  var tlEvts=[];
+  (c.checkins||[]).forEach(function(ci){tlEvts.push({date:ci.date,dot:'var(--bl)',txt:'Check-in'+(ci.score!==undefined?' · '+ci.score+'/10':'')+(ci.nota?' — '+ci.nota:'')});});
+  (c.weights||[]).forEach(function(w){tlEvts.push({date:w.date,dot:'var(--or)',txt:'Peso: '+w.kg+' kg'+(w.note?' — '+w.note:'')});});
+  (c.quickNotes||[]).forEach(function(n){tlEvts.push({date:(n.fecha||'').substring(0,10),dot:'var(--pu)',txt:'Nota: '+n.texto});});
+  pagos.filter(function(p){return p.clienteId===c.id;}).forEach(function(p){tlEvts.push({date:p.fecha,dot:'var(--gn)',txt:'Pago: $'+p.monto+(p.nota?' — '+p.nota:'')});});
+  (c.renewals||[]).forEach(function(r){tlEvts.push({date:r.renewedAt,dot:'var(--yw)',txt:'Renovación: '+r.plan});});
+  tlEvts.sort(function(a,b){return b.date.localeCompare(a.date);});
+  var tlHtml=tlEvts.slice(0,10).map(function(ev){
+    return '<div class="tl-item"><div class="tl-dot" style="background:'+ev.dot+'"></div>'+
+      '<div class="tl-body"><div class="tl-txt">'+ev.txt+'</div><div class="tl-date">'+fmtFecha(ev.date)+'</div></div></div>';
+  }).join('')||'<div style="font-size:11px;color:var(--gy)">Sin actividad registrada</div>';
+
+  // Pagos de este cliente
+  var cPagos=pagos.filter(function(p){return p.clienteId===c.id;}).slice().reverse();
+  var cPagosHtml=cPagos.length?cPagos.slice(0,6).map(function(p){
+    return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:.5px solid var(--bk4);font-size:11px">'+
+      '<span style="color:var(--gy)">'+fmtFecha(p.fecha)+(p.nota?' · '+p.nota:'')+'</span>'+
+      '<span style="color:var(--gn);font-weight:700">$'+p.monto+'</span></div>';
+  }).join(''):'<div style="font-size:11px;color:var(--gy)">Sin pagos registrados</div>';
+
   ge('pf-cont').innerHTML=
     '<div class="pf-hdr">'+
       '<div class="pf-av" style="background:'+avatarColor(c.name)+'">'+iniciales(c.name)+'</div>'+
@@ -1944,6 +2049,10 @@ function abrirPerfil(id) {
     '<div style="margin-bottom:7px">'+
       '<div class="pb-top"><span>Progreso del plan</span><span>'+pr+'%</span></div>'+
       '<div class="pb-tr"><div class="pb-fi" style="width:'+pr+'%"></div></div>'+
+    '</div>'+
+    '<div class="pf-card" style="margin-bottom:11px">'+
+      '<div class="pf-ct">Actividad reciente</div>'+
+      tlHtml+
     '</div>'+
     '<div class="pf-grid">'+
     '<div style="display:flex;flex-direction:column;gap:10px">'+
@@ -2003,6 +2112,7 @@ function abrirPerfil(id) {
         rtHtml+
       '</div>'+
       '<div class="pf-card"><div class="pf-ct">Renovaciones</div>'+rens+'</div>'+
+      '<div class="pf-card"><div class="pf-ct"><span>Pagos ('+(cPagos.length)+')</span><button class="btn b-yw b-xs" onclick="abrirCobrar(\''+c.id+'\')">💳 Cobrar</button></div>'+cPagosHtml+'</div>'+
       '<div class="pf-card">'+
         '<div class="pf-ct"><span>Fotos progreso ('+(getFotos(c.id)||[]).length+')</span>'+
           '<button class="btn b-bl b-xs" onclick="subirFotoProgreso(\''+c.id+'\')">📷 Agregar</button></div>'+
@@ -2164,7 +2274,7 @@ function abrirModalRenovar(id) {
   renId=id;
   var c=clientes.find(function(x){return x.id===id;}); if(!c)return;
   ge('mr-sub').textContent=c.name;
-  sv('mr-plan',c.plan||'Arranque - $100'); sv('mr-ini',hoy()); sv('mr-pago',hoy()); sv('mr-notas','');
+  sv('mr-plan',c.plan||'Arranque - $37'); sv('mr-ini',hoy()); sv('mr-pago',hoy()); sv('mr-notas','');
   ge('mr-info').innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--gy)">Plan actual</span><span style="color:var(--or);font-weight:600">'+c.plan+'</span></div>'+
     '<div style="display:flex;justify-content:space-between"><span style="color:var(--gy)">Renovaciones previas</span><span style="color:var(--wh)">'+(c.renewals||[]).length+'</span></div>';
   abrirModal('mo-ren');
@@ -2285,6 +2395,67 @@ function renderMetricas() {
   if(sel){
     sel.innerHTML=act.map(function(c){return '<option value="'+c.id+'">'+c.name+'</option>';}).join('');
   }
+
+  // ── Curva de crecimiento de asesorados (Canvas) ──
+  var growthMeses=[];
+  for(var gi=5;gi>=0;gi--){var gd=new Date();gd.setMonth(gd.getMonth()-gi);growthMeses.push(gd.toISOString().substring(0,7));}
+  var growthData=growthMeses.map(function(m){
+    return clientes.filter(function(c){return c.startDate&&c.startDate.substring(0,7)<=m;}).length;
+  });
+  var maxG=Math.max.apply(null,growthData)||1;
+
+  // ── Proyección de ingresos próximos 30 días ──
+  var hoyD=new Date();
+  var en30=new Date(hoyD.getTime()+30*24*60*60*1000);
+  var proxPagos=clientes.filter(function(c){
+    if(!c.paymentDate||c.activo===false)return false;
+    var pd=new Date(c.paymentDate);
+    return pd>=hoyD&&pd<=en30;
+  }).sort(function(a,b){return a.paymentDate.localeCompare(b.paymentDate);});
+
+  var proyHtml=proxPagos.length?proxPagos.map(function(c){
+    var monto=parseInt((c.plan||'').replace(/\D/g,''))||0;
+    var diff=Math.ceil((new Date(c.paymentDate)-hoyD)/(1000*60*60*24));
+    return '<div class="proj-item">'+
+      '<span style="color:var(--wh);font-weight:600">'+c.name+'</span>'+
+      '<span style="color:var(--gy);font-size:10px">en '+diff+' día'+(diff!==1?'s':'')+'</span>'+
+      (monto?'<span style="color:var(--gn);font-weight:700">$'+monto+'</span>':'<span style="color:var(--gy)">'+c.plan+'</span>')+
+    '</div>';
+  }).join(''):'<div style="font-size:11px;color:var(--gy)">Sin cobros próximos en los próximos 30 días</div>';
+
+  var projTotal=proxPagos.reduce(function(s,c){return s+(parseInt((c.plan||'').replace(/\D/g,''))||0);},0);
+
+  var growthExtra=ge('met-growth');
+  var growthHtml=
+    '<div class="met-growth-wrap">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+        '<div style="font-size:10px;color:var(--or);letter-spacing:2px;text-transform:uppercase;font-weight:600">Crecimiento de asesorados</div>'+
+        '<div style="font-size:11px;color:var(--gy)">últimos 6 meses</div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:flex-end;gap:8px;height:60px">'+
+      growthData.map(function(v,i){
+        var h=Math.max(4,Math.round(v/maxG*56));
+        var isLast=i===growthData.length-1;
+        var shortM=new Date(growthMeses[i]+'-02').toLocaleDateString('es',{month:'short'});
+        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">'+
+          '<div style="font-size:9px;color:'+(isLast?'var(--or)':'var(--gy)')+'">'+v+'</div>'+
+          '<div style="width:100%;height:'+h+'px;background:'+(isLast?'var(--or)':'var(--bk4)')+';border-radius:3px 3px 0 0;transition:height .3s"></div>'+
+          '<div style="font-size:8px;color:var(--gy)">'+shortM+'</div>'+
+        '</div>';
+      }).join('')+
+      '</div>'+
+    '</div>'+
+    '<div style="background:var(--bk2);border:1px solid var(--bk4);border-radius:10px;padding:14px;margin-top:12px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+        '<div style="font-size:10px;color:var(--or);letter-spacing:2px;text-transform:uppercase;font-weight:600">Cobros próximos — 30 días</div>'+
+        (projTotal?'<div style="font-size:13px;font-weight:700;color:var(--gn)">$'+projTotal+' proyectado</div>':'')+
+      '</div>'+
+      proyHtml+
+    '</div>';
+
+  if(!growthExtra){
+    var t4=ge('t4');var div=document.createElement('div');div.id='met-growth';div.innerHTML=growthHtml;t4.appendChild(div);
+  } else {growthExtra.innerHTML=growthHtml;}
 }
 
 /* ══════════════════════════════════════════════════
@@ -3881,7 +4052,7 @@ function cargarNutCliente(id) {
   nutId=id;
   sv('n-nom',c.name||'');
   sv('n-obj',GOAL_MAP[c.goal]||'deficit_moderado');
-  sv('n-plan',c.plan||'Arranque — $100');
+  sv('n-plan',c.plan||'Arranque — $37');
   // Auto-fill physical data (sync fix #5)
   var lp=ultimoPeso(c);
   if(lp) sv('n-kg',lp.kg);
@@ -4582,7 +4753,10 @@ async function loginCheck() {
     if(!(localStorage.getItem('we_gh_token')||'').trim()){
       cargarTokenDesdeNube().then(function(ok){
         if(ok){
-          cargarDesdeNube(function(actualizado){if(actualizado){renderTodo();renderMensajes();}});
+          cargarDesdeNube(function(actualizado){
+            if(actualizado){renderTodo();renderMensajes();}
+            cargarFotosDesdeNube();
+          });
         } else {
           mostrarSetup();
         }
@@ -4610,7 +4784,10 @@ function checkAuth() {
     if(!(localStorage.getItem('we_gh_token')||'').trim()){
       cargarTokenDesdeNube().then(function(ok){
         if(ok){
-          cargarDesdeNube(function(actualizado){if(actualizado){renderTodo();renderMensajes();}});
+          cargarDesdeNube(function(actualizado){
+            if(actualizado){renderTodo();renderMensajes();}
+            cargarFotosDesdeNube();
+          });
         } else {
           mostrarSetup();
         }
@@ -4759,7 +4936,10 @@ function initApp() {
     renderDiasRutina();
     setInterval(function(){renderStats();renderAlertas();},60000);
     verificarSesion();
-    cargarDesdeNube(function(actualizado){ if(actualizado){ renderTodo(); renderComidas(); renderMensajes(); } });
+    cargarDesdeNube(function(actualizado){
+      if(actualizado){ renderTodo(); renderComidas(); renderMensajes(); }
+      cargarFotosDesdeNube();
+    });
   } catch(e) {
     console.error('Init error:', e);
   }
