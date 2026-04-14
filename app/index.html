@@ -162,6 +162,26 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
 
 /* RENOVACIONES */
 .rn-item{background:var(--bk3);border-radius:6px;padding:7px 10px;margin-bottom:4px;font-size:11px;display:flex;justify-content:space-between;}
+/* ── DASHBOARD HOY ── */
+.dash-section{margin-bottom:14px;}
+.dash-sec-t{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;display:flex;align-items:center;gap:5px;}
+.dash-item{display:flex;align-items:center;gap:9px;background:var(--bk2);border:1px solid var(--bk4);border-radius:8px;padding:8px 11px;margin-bottom:4px;transition:border-color .15s;}
+.dash-item:hover{border-color:rgba(255,69,0,.35);}
+.dash-urgente{border-left:3px solid var(--rd);}
+.dash-proximo{border-left:3px solid var(--yw);}
+.dash-name{font-size:12px;font-weight:600;color:var(--wh);}
+.dash-task{font-size:10px;color:var(--gy);margin-top:1px;}
+/* ── PESO CHART ── */
+.peso-chart-wrap{background:var(--bk3);border-radius:6px;padding:8px 6px;margin-bottom:8px;}
+.peso-chart{width:100%;border-radius:4px;display:block;}
+/* ── WA RÁPIDO / NOTA RÁPIDA ── */
+.wa-msg-item{background:var(--bk3);border-radius:7px;padding:8px 11px;margin-bottom:5px;cursor:pointer;border:1px solid var(--bk4);transition:border-color .15s;}
+.wa-msg-item:hover{border-color:var(--gn);}
+.wa-msg-title{font-size:11px;font-weight:600;color:var(--wh);margin-bottom:2px;}
+.wa-msg-prev{font-size:10px;color:var(--gy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nota-item{background:var(--bk3);border-radius:6px;padding:6px 9px;margin-bottom:4px;font-size:11px;}
+.nota-fecha{font-size:9px;color:var(--or);margin-bottom:2px;}
+.nota-txt{color:var(--gy);line-height:1.5;}
 /* PROSPECTOS */
 .pros-bar{padding:10px 18px;border-bottom:1px solid var(--bk4);flex-shrink:0;display:none;}
 .pros-bar.on{display:block;}
@@ -759,6 +779,36 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
 
 <!-- ===================== MODALS ===================== -->
 
+<!-- MODAL WA RÁPIDO -->
+<div class="mo" id="mo-wa-rapido">
+  <div class="md" style="max-width:420px">
+    <div class="md-t" id="wa-nombre">WhatsApp rápido</div>
+    <div class="md-s">Selecciona una plantilla — se abre WhatsApp con el mensaje listo</div>
+    <div id="wa-msgs-list" style="max-height:320px;overflow-y:auto;margin-bottom:12px"></div>
+    <div class="fg"><label>Mensaje personalizado</label>
+      <textarea id="wa-custom" rows="2" placeholder="Escribe un mensaje directo..."></textarea>
+    </div>
+    <div class="md-acts">
+      <button class="btn b-dk" style="flex:1" onclick="cerrarModal('mo-wa-rapido')">Cancelar</button>
+      <button class="btn b-gn" style="flex:2" onclick="enviarWACustom()">💬 Enviar personalizado</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOTA RÁPIDA -->
+<div class="mo" id="mo-nota-rapida">
+  <div class="md" style="max-width:400px">
+    <div class="md-t" id="nota-nombre">Nota rápida</div>
+    <div class="md-s">Se guarda en el perfil del asesorado con fecha y hora</div>
+    <div class="fg"><textarea id="nota-texto" rows="3" placeholder="Observación, recordatorio, detalle del día..."></textarea></div>
+    <div id="notas-previas" style="margin-bottom:12px"></div>
+    <div class="md-acts">
+      <button class="btn b-dk" style="flex:1" onclick="cerrarModal('mo-nota-rapida')">Cancelar</button>
+      <button class="btn b-or" style="flex:2" onclick="guardarNotaRapida()">Guardar nota</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CLIENTE -->
 <div class="mo" id="mo-cliente">
   <div class="md">
@@ -1243,16 +1293,77 @@ function setFiltro(f,el) {
   if(el)el.classList.add('on');
   renderLista();
 }
+function renderDashboardHoy(){
+  var act=clientes.filter(function(c){return c.activo!==false;});
+  var urgente=[],proximos=[],alDia=[];
+  act.forEach(function(c){
+    var checks=[{d:c.checkinDate,l:'Check-in'},{d:c.paymentDate,l:'Pago'},{d:c.nutritionDate,l:'Nutrición'},{d:c.sessionDate,l:'Sesión'}];
+    var tareas=[];
+    checks.forEach(function(x){var n=diasHasta(x.d);if(n!==null&&n<=7)tareas.push({lbl:x.l,n:n});});
+    if(!tareas.length){alDia.push(c);return;}
+    var min=Math.min.apply(null,tareas.map(function(t){return t.n;}));
+    if(min<=0) urgente.push({c:c,tareas:tareas});
+    else proximos.push({c:c,tareas:tareas,min:min});
+  });
+  proximos.sort(function(a,b){return a.min-b.min;});
+  var fecha=new Date();
+  var dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  var html='<div style="padding:14px 18px;overflow-y:auto;flex:1">';
+  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">';
+  html+='<div style="font-size:11px;color:var(--gy)">'+dias[fecha.getDay()]+', '+fecha.getDate()+' de '+meses[fecha.getMonth()]+'</div>';
+  html+='<div style="font-size:10px;color:var(--gy2)">'+act.length+' asesorados activos</div>';
+  html+='</div>';
+  if(!act.length){
+    html+='<div class="empty"><div style="font-size:32px;opacity:.3">🎯</div><div style="margin-top:8px;font-size:13px;color:var(--gy)">Sin asesorados activos</div></div>';
+    return html+'</div>';
+  }
+  if(urgente.length){
+    html+='<div class="dash-section"><div class="dash-sec-t" style="color:var(--rd)">⚠ Atención inmediata ('+urgente.length+')</div>';
+    urgente.forEach(function(item){
+      var wa=item.c.phone?'https://wa.me/'+item.c.phone.replace(/\D/g,''):'';
+      var ts=item.tareas.filter(function(t){return t.n<=0;}).map(function(t){return t.lbl+(t.n===0?' · <b style="color:var(--rd)">Hoy</b>':' · '+Math.abs(t.n)+'d vencido');}).join(' &nbsp;·&nbsp; ');
+      html+='<div class="dash-item dash-urgente">'+
+        '<div class="c-av" style="background:'+avatarColor(item.c.name)+';width:32px;height:32px;font-size:11px;flex-shrink:0">'+iniciales(item.c.name)+'</div>'+
+        '<div style="flex:1;min-width:0"><div class="dash-name">'+item.c.name+'</div><div class="dash-task">'+ts+'</div></div>'+
+        '<div style="display:flex;gap:3px">'+
+          (wa?'<button class="btn b-gn b-xs" onclick="abrirWARapido(\''+item.c.id+'\')">💬</button>':'')+
+          '<button class="btn b-or b-xs" onclick="abrirPerfil(\''+item.c.id+'\')">Ver</button>'+
+        '</div></div>';
+    });
+    html+='</div>';
+  }
+  if(proximos.length){
+    html+='<div class="dash-section"><div class="dash-sec-t" style="color:var(--yw)">📅 Esta semana ('+proximos.length+')</div>';
+    proximos.slice(0,8).forEach(function(item){
+      var ts=item.tareas.map(function(t){return t.lbl+' en <b>'+t.n+'d</b>';}).join(' &nbsp;·&nbsp; ');
+      html+='<div class="dash-item dash-proximo">'+
+        '<div class="c-av" style="background:'+avatarColor(item.c.name)+';width:32px;height:32px;font-size:11px;flex-shrink:0">'+iniciales(item.c.name)+'</div>'+
+        '<div style="flex:1;min-width:0"><div class="dash-name">'+item.c.name+'</div><div class="dash-task">'+ts+'</div></div>'+
+        '<button class="btn b-dk b-xs" onclick="abrirPerfil(\''+item.c.id+'\')">Ver</button>'+
+      '</div>';
+    });
+    if(proximos.length>8) html+='<div style="font-size:10px;color:var(--gy);padding:3px 0">+'+(proximos.length-8)+' más esta semana</div>';
+    html+='</div>';
+  }
+  if(alDia.length){
+    html+='<div class="dash-section"><div class="dash-sec-t" style="color:var(--gn)">✅ Al día ('+alDia.length+')</div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:4px">';
+    alDia.forEach(function(c){
+      html+='<div style="background:var(--bk2);border:1px solid var(--bk4);border-radius:6px;padding:4px 9px;font-size:11px;color:var(--gy);cursor:pointer;display:flex;align-items:center;gap:5px" onclick="abrirPerfil(\''+c.id+'\')">'+
+        '<div class="c-av" style="background:'+avatarColor(c.name)+';width:18px;height:18px;font-size:7px;flex-shrink:0">'+iniciales(c.name)+'</div>'+
+        c.name+'</div>';
+    });
+    html+='</div></div>';
+  }
+  return html+'</div>';
+}
 function renderLista() {
   var cont=ge('lista');
   var srch=(gv('srch')||'').toLowerCase().trim();
-  // Modo buscar-primero: sin búsqueda y sin filtro activo → pantalla limpia
+  // Sin búsqueda y sin filtro → mostrar dashboard de hoy
   if(!srch && filtro==='todos'){
-    cont.innerHTML='<div class="empty" style="padding:60px 20px">'+
-      '<div style="font-size:36px;margin-bottom:12px;opacity:.4">🔍</div>'+
-      '<div style="font-size:13px;font-weight:600;color:var(--wh);margin-bottom:4px">Busca un asesorado</div>'+
-      '<div style="font-size:11px;color:var(--gy)">Escribe el nombre en el campo de búsqueda</div>'+
-    '</div>';
+    cont.innerHTML=renderDashboardHoy();
     return;
   }
   var list=clientes.filter(function(c){return c.activo!==false;});
@@ -1271,14 +1382,87 @@ function renderLista() {
       '<div class="c-info"><div class="c-name">'+c.name+'</div><div class="c-sub">'+c.plan+(c.goal?' · '+c.goal:'')+'</div></div>'+
       '<div class="c-pills">'+pills+'</div>'+
       '<div class="c-btns">'+
-        '<button class="btn b-dk b-sm" onclick="editarCliente(\''+c.id+'\')">Editar</button>'+
-        '<button class="btn b-rd b-sm" onclick="eliminarCliente(\''+c.id+'\')">Eliminar</button>'+
+        (c.phone?'<button class="btn b-gn b-sm" onclick="abrirWARapido(\''+c.id+'\')" title="WhatsApp rápido">💬</button>':'')+
+        '<button class="btn b-pu b-sm" onclick="abrirNotaRapida(\''+c.id+'\')" title="Nota rápida">📝</button>'+
         '<button class="btn b-or b-sm" onclick="abrirPerfil(\''+c.id+'\')">Ver perfil</button>'+
       '</div>'+
     '</div>';
   }).join('');
 }
 function renderTodo(){renderStats();renderAlertas();renderLista();renderProspectos();}
+
+/* ══════════════════════════════════════════════════
+   WHATSAPP RÁPIDO
+══════════════════════════════════════════════════ */
+var _waClienteId=null;
+function abrirWARapido(id){
+  var c=clientes.find(function(x){return x.id===id;}); if(!c||!c.phone) return;
+  _waClienteId=id;
+  ge('wa-nombre').textContent='WhatsApp — '+c.name;
+  ge('wa-custom').value='';
+  // Mostrar plantillas del banco de mensajes personalizadas con el nombre del cliente
+  var lista=ge('wa-msgs-list');
+  var mss=mensajes.slice(0,8);
+  if(!mss.length){lista.innerHTML='<div style="font-size:11px;color:var(--gy)">Sin plantillas en el banco de mensajes.</div>';}
+  else{
+    lista.innerHTML=mss.map(function(m){
+      var txt=(m.body||'').replace(/\{nombre\}/gi,c.name.split(' ')[0]);
+      return '<div class="wa-msg-item" onclick="enviarWAMensaje(\''+id+'\',this)" data-msg="'+txt.replace(/"/g,'&quot;')+'">'+
+        '<div class="wa-msg-title">'+m.title+'</div>'+
+        '<div class="wa-msg-prev">'+txt.substring(0,90)+(txt.length>90?'…':'')+'</div>'+
+      '</div>';
+    }).join('');
+  }
+  abrirModal('mo-wa-rapido');
+}
+function enviarWAMensaje(id,el){
+  var c=clientes.find(function(x){return x.id===id;}); if(!c||!c.phone) return;
+  var msg=el.getAttribute('data-msg')||'';
+  var url='https://wa.me/'+c.phone.replace(/\D/g,'')+'?text='+encodeURIComponent(msg);
+  window.open(url,'_blank');
+  cerrarModal('mo-wa-rapido');
+}
+function enviarWACustom(){
+  var c=clientes.find(function(x){return x.id===_waClienteId;}); if(!c||!c.phone) return;
+  var msg=(gv('wa-custom')||'').trim();
+  if(!msg){toast('Escribe un mensaje primero','err');return;}
+  var url='https://wa.me/'+c.phone.replace(/\D/g,'')+'?text='+encodeURIComponent(msg);
+  window.open(url,'_blank');
+  cerrarModal('mo-wa-rapido');
+}
+
+/* ══════════════════════════════════════════════════
+   NOTAS RÁPIDAS
+══════════════════════════════════════════════════ */
+var _notaClienteId=null;
+function abrirNotaRapida(id){
+  var c=clientes.find(function(x){return x.id===id;}); if(!c) return;
+  _notaClienteId=id;
+  ge('nota-nombre').textContent='Nota — '+c.name;
+  ge('nota-texto').value='';
+  // Mostrar últimas notas
+  var prev=ge('notas-previas');
+  var notas=(c.quickNotes||[]).slice().reverse().slice(0,3);
+  prev.innerHTML=notas.length
+    ?'<div style="font-size:9px;color:var(--or);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Notas anteriores</div>'+
+      notas.map(function(n){
+        return '<div class="nota-item"><div class="nota-fecha">'+fmtFecha(n.date)+' '+( n.time||'')+'</div><div class="nota-txt">'+n.text+'</div></div>';
+      }).join('')
+    :'';
+  abrirModal('mo-nota-rapida');
+  setTimeout(function(){ge('nota-texto').focus();},150);
+}
+function guardarNotaRapida(){
+  var texto=(gv('nota-texto')||'').trim();
+  if(!texto){toast('Escribe algo primero','err');return;}
+  var c=clientes.find(function(x){return x.id===_notaClienteId;}); if(!c) return;
+  if(!c.quickNotes) c.quickNotes=[];
+  var ahora=new Date();
+  c.quickNotes.push({date:ahora.toISOString().split('T')[0],time:ahora.toTimeString().substring(0,5),text:texto});
+  guardarTodo();
+  cerrarModal('mo-nota-rapida');
+  toast('Nota guardada ✓');
+}
 
 /* ══════════════════════════════════════════════════
    PROSPECTOS / LEADS
@@ -1413,7 +1597,13 @@ function abrirPerfil(id) {
   var adh=adherenciaPromedio(c);
   var rutasCliente=rutinas.filter(function(r){return (c.rutinaIds||[]).indexOf(r.id)>=0;});
 
-  var wLog=pesos.length?pesos.slice(0,8).map(function(w,i){
+  // Gráfica de peso (canvas — se dibuja después de insertar el HTML)
+  var chartId='chart-peso-'+c.id;
+  var wLog='';
+  if(pesos.length>=2){
+    wLog+='<div class="peso-chart-wrap"><canvas class="peso-chart" id="'+chartId+'" height="70"></canvas></div>';
+  }
+  wLog+=pesos.length?pesos.slice(0,8).map(function(w,i){
     var prev=pesos[i+1];
     var diff=prev?(w.kg-prev.kg).toFixed(1):null;
     var dc=diff?(parseFloat(diff)<0?'var(--gn)':'var(--rd)'):'var(--gy)';
@@ -1473,7 +1663,7 @@ function abrirPerfil(id) {
         '<button class="btn b-gh b-sm" onclick="abrirModalPeso(\''+c.id+'\')">⚖️ Peso</button>'+
         '<button class="btn b-or b-sm" onclick="abrirModalCL(\''+c.id+'\')">✅ '+cls+'/8</button>'+
         '<button class="btn b-gh b-sm" onclick="abrirModalRenovar(\''+c.id+'\')">🔄 Renovar</button>'+
-        (wa?'<button class="btn b-gn b-sm" onclick="window.open(\''+wa+'\',\'_blank\')">WhatsApp</button>':'')+
+        (wa?'<button class="btn b-gn b-sm" onclick="abrirWARapido(\''+c.id+'\')">💬 WhatsApp</button>':'')+
         '<button class="btn b-dk b-sm" onclick="editarCliente(\''+c.id+'\')">Editar</button>'+
         '<button class="btn b-dk b-sm" onclick="cerrarPerfil()">✕</button>'+
       '</div>'+
@@ -1540,16 +1730,64 @@ function abrirPerfil(id) {
         rtHtml+
       '</div>'+
       '<div class="pf-card"><div class="pf-ct">Renovaciones</div>'+rens+'</div>'+
+      '<div class="pf-card">'+
+        '<div class="pf-ct"><span>Notas rápidas ('+(c.quickNotes||[]).length+')</span>'+
+          '<button class="btn b-pu b-xs" onclick="abrirNotaRapida(\''+c.id+'\')">+ Nota</button></div>'+
+        ((c.quickNotes||[]).length
+          ?(c.quickNotes).slice().reverse().slice(0,5).map(function(n){
+              return '<div class="nota-item"><div class="nota-fecha">'+fmtFecha(n.date)+(n.time?' '+n.time:'')+'</div><div class="nota-txt">'+n.text+'</div></div>';
+            }).join('')
+          :'<div style="font-size:11px;color:var(--gy)">Sin notas</div>')+
+      '</div>'+
     '</div>'+
     '</div>';
 
   ge('ov-perfil').classList.add('on');
   document.body.style.overflow='hidden';
+  // Dibujar gráfica de peso después de renderizar el HTML
+  if(pesos.length>=2){
+    requestAnimationFrame(function(){
+      var sorted=pesos.slice().sort(function(a,b){return a.date.localeCompare(b.date);}).slice(-16);
+      renderPesoChart('chart-peso-'+c.id, sorted);
+    });
+  }
 }
 function cerrarPerfil() {
   ge('ov-perfil').classList.remove('on');
   document.body.style.overflow='';
   renderTodo();
+}
+function renderPesoChart(canvasId, sorted){
+  var canvas=ge(canvasId); if(!canvas||sorted.length<2) return;
+  var w=canvas.offsetWidth||300; canvas.width=w; canvas.height=70;
+  var ctx=canvas.getContext('2d');
+  var vals=sorted.map(function(p){return p.kg;});
+  var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
+  var rng=mx-mn||1; var pad=6;
+  var toX=function(i){return pad+(i/(sorted.length-1))*(w-pad*2);};
+  var toY=function(v){return (70-pad)-(((v-mn)/rng)*(70-pad*2));};
+  // Fondo gradiente
+  var grad=ctx.createLinearGradient(0,0,0,70);
+  grad.addColorStop(0,'rgba(255,69,0,.25)');grad.addColorStop(1,'rgba(255,69,0,0)');
+  ctx.beginPath();ctx.moveTo(toX(0),70);
+  sorted.forEach(function(p,i){ctx.lineTo(toX(i),toY(p.kg));});
+  ctx.lineTo(toX(sorted.length-1),70);ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+  // Línea
+  ctx.beginPath();ctx.strokeStyle='#FF4500';ctx.lineWidth=2;ctx.lineJoin='round';
+  sorted.forEach(function(p,i){i===0?ctx.moveTo(toX(i),toY(p.kg)):ctx.lineTo(toX(i),toY(p.kg));});
+  ctx.stroke();
+  // Puntos y etiquetas
+  sorted.forEach(function(p,i){
+    var x=toX(i),y=toY(p.kg);
+    ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle='#FF4500';ctx.fill();
+    // Etiquetar primero, último y min/max
+    if(i===0||i===sorted.length-1||p.kg===mn||p.kg===mx){
+      ctx.fillStyle='rgba(245,245,245,.85)';ctx.font='bold 8px sans-serif';
+      ctx.textAlign=i===0?'left':i===sorted.length-1?'right':'center';
+      ctx.fillText(p.kg+'kg',x,y-5);
+    }
+  });
 }
 
 /* ══════════════════════════════════════════════════
