@@ -3,6 +3,11 @@ name: Deploy
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'data/**'
+      - 'data/sync.json'
+      - 'data/session.json'
+      - 'data/fotos.json'
 
 permissions:
   contents: read
