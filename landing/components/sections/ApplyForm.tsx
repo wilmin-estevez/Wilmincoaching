@@ -37,9 +37,9 @@ export function ApplyForm() {
   const formRef = useRef<HTMLFormElement>(null)
 
   // Valores controlados para los Selects
-  const [objetivo, setObjetivo] = useState('')
-  const [tiempo, setTiempo] = useState('')
-  const [plan, setPlan] = useState('')
+  const [objetivo, setObjetivo] = useState<string | null>(null)
+  const [tiempo, setTiempo] = useState<string | null>(null)
+  const [plan, setPlan] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -50,9 +50,9 @@ export function ApplyForm() {
     const data: FormData = {
       nombre:   (fd.get('nombre')   as string) || '',
       telefono: (fd.get('telefono') as string) || '',
-      objetivo,
-      tiempo,
-      plan,
+      objetivo: objetivo ?? '',
+      tiempo: tiempo ?? '',
+      plan: plan ?? '',
       notas:    (fd.get('notas')    as string) || '',
     }
 
@@ -67,8 +67,6 @@ export function ApplyForm() {
       }
 
       // ── 2. Guardar prospecto en GitHub (llega directo al coaching app) ─────
-      // El token con scope "contents:write" se almacena en el coaching app.
-      // Aquí lo leemos del localStorage si el usuario abrió el app en este browser.
       const ghToken = typeof window !== 'undefined'
         ? localStorage.getItem('we_gh_token')
         : null
@@ -78,7 +76,6 @@ export function ApplyForm() {
         const REPO  = 'Wilmincoaching'
         const PATH  = 'data/sync.json'
 
-        // Leer sync.json actual
         const res = await fetch(
           `https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`,
           { headers: { Authorization: `token ${ghToken}`, Accept: 'application/vnd.github.v3+json' } }
