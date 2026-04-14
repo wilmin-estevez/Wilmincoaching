@@ -323,6 +323,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
 .del-btn{width:20px;height:20px;background:var(--rda);color:var(--rd);border:none;border-radius:3px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .add-f-btn{font-size:11px;color:var(--or);background:transparent;border:1px dashed rgba(255,69,0,.3);border-radius:4px;padding:4px;cursor:pointer;width:100%;margin-top:3px;}
 .add-f-btn:hover{background:var(--org);}
+.ncat-bar{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;}
+.ncat-btn{font-size:9px;padding:3px 7px;border-radius:20px;border:1px solid rgba(255,69,0,.3);background:transparent;color:var(--gy);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.ncat-btn:hover{border-color:var(--or);color:var(--or);}
+.ncat-act{background:var(--or)!important;color:#fff!important;border-color:var(--or)!important;}
 .add-m-btn{font-size:11px;color:var(--or);background:transparent;border:1.5px dashed rgba(255,69,0,.3);border-radius:7px;padding:7px;cursor:pointer;width:100%;margin-top:6px;}
 .add-m-btn:hover{background:var(--org);}
 /* PREVIEW */
@@ -716,6 +720,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--or);}
       </div>
       <div class="sec-blk">
         <div class="sec-t">Comidas del plan</div>
+        <div style="font-size:9px;color:var(--gy);margin-bottom:4px;letter-spacing:.5px">Filtrar alimentos por categoría:</div>
+        <div class="ncat-bar" id="ncat-bar"></div>
         <div class="meals-wrap" id="meals-cont"></div>
         <button class="add-m-btn" onclick="agregarComida()">+ Agregar comida</button>
       </div>
@@ -1425,7 +1431,7 @@ function showTab(id) {
   var tEl=ge('topbar-title'); if(tEl) tEl.textContent=TAB_TITLES[id]||'';
   var nb=ge('btn-nuevo-asesorado'); if(nb) nb.style.display=(id==='t1')?'':'none';
   closeSidebar();
-  if (id==='t2') renderNutBtns();
+  if (id==='t2') { renderNutBtns(); renderNutCatBar(); }
   if (id==='t3') renderRutBtns();
   if (id==='t4') renderMetricas();
   if (id==='t5') renderMensajes();
@@ -2925,10 +2931,297 @@ function quitarRutina(clienteId,rutId2) {
 /* ══════════════════════════════════════════════════
    DISEÑADOR NUTRICIONAL (mejorado — búsqueda fuzzy #7, IMC sync #5, medidor descanso #8)
 ══════════════════════════════════════════════════ */
+var _nutCatFilter=''; // Filtro activo de categoría en diseñador nutricional
 var ALIMENTOS = [
-  // ── PROTEÍNAS ANIMALES CRUDAS (recomendado para pesar en crudo) ──
-  // Nota: pesar en crudo es más preciso. Al cocinar el pollo pierde ~25% de peso.
-  {cat:'Proteína (crudo)',n:'Pechuga de pollo cruda',cal:120,p:22,c:0,f:2.6,unit:'g',nota:'Crudo → cocido pierde ~25% peso'},
+  // ── CARNES ROJAS ──
+  {cat:'Carnes Rojas',n:'Bistec de res (sirloin) crudo',cal:158,p:24,c:0,f:6.5,unit:'g',nota:'Pierde ~30% al cocinar'},
+  {cat:'Carnes Rojas',n:'Carne magra de res cruda',cal:143,p:21,c:0,f:6,unit:'g',nota:'Pierde ~30% al cocinar'},
+  {cat:'Carnes Rojas',n:'Carne molida 80/20 cruda',cal:215,p:17,c:0,f:16,unit:'g'},
+  {cat:'Carnes Rojas',n:'Carne molida 90/10 cruda',cal:176,p:20,c:0,f:10,unit:'g'},
+  {cat:'Carnes Rojas',n:'Lomo de res crudo',cal:170,p:22,c:0,f:8,unit:'g'},
+  {cat:'Carnes Rojas',n:'Lomo de cerdo crudo',cal:122,p:21,c:0,f:4,unit:'g'},
+  {cat:'Carnes Rojas',n:'Chuleta de cerdo cruda',cal:187,p:19,c:0,f:12,unit:'g'},
+  {cat:'Carnes Rojas',n:'Costillas de cerdo crudas',cal:278,p:17,c:0,f:23,unit:'g'},
+  {cat:'Carnes Rojas',n:'Tocino de cerdo',cal:541,p:37,c:1.4,f:42,unit:'g'},
+  {cat:'Carnes Rojas',n:'Chorizo de cerdo',cal:455,p:24,c:2,f:38,unit:'g'},
+  {cat:'Carnes Rojas',n:'Cordero pierna cruda',cal:154,p:21,c:0,f:7.5,unit:'g'},
+  {cat:'Carnes Rojas',n:'Costilla de cordero cruda',cal:222,p:17,c:0,f:17,unit:'g'},
+  {cat:'Carnes Rojas',n:'Carne de búfalo cruda',cal:109,p:23,c:0,f:1.5,unit:'g'},
+  {cat:'Carnes Rojas',n:'Ternera cruda',cal:120,p:21,c:0,f:3.5,unit:'g'},
+  {cat:'Carnes Rojas',n:'Res magra cocida',cal:176,p:26,c:0,f:7,unit:'g'},
+  {cat:'Carnes Rojas',n:'Carne molida cocida',cal:215,p:22,c:0,f:14,unit:'g'},
+  // ── AVES ──
+  {cat:'Aves',n:'Pechuga de pollo cruda',cal:120,p:22,c:0,f:2.6,unit:'g',nota:'Pierde ~25% al cocinar'},
+  {cat:'Aves',n:'Muslo de pollo crudo',cal:153,p:17,c:0,f:9,unit:'g'},
+  {cat:'Aves',n:'Pechuga de pollo cocida',cal:165,p:31,c:0,f:3.6,unit:'g'},
+  {cat:'Aves',n:'Muslo de pollo cocido',cal:177,p:22,c:0,f:9,unit:'g'},
+  {cat:'Aves',n:'Pechuga de pavo cruda',cal:104,p:21,c:0,f:2,unit:'g'},
+  {cat:'Aves',n:'Pechuga de pavo cocida',cal:135,p:30,c:0,f:1,unit:'g'},
+  {cat:'Aves',n:'Muslo de pavo crudo',cal:163,p:20,c:0,f:9,unit:'g'},
+  {cat:'Aves',n:'Pollo entero crudo',cal:167,p:18,c:0,f:10,unit:'g'},
+  {cat:'Aves',n:'Pollo a la parrilla',cal:165,p:31,c:0,f:3.6,unit:'g'},
+  {cat:'Aves',n:'Pato crudo',cal:337,p:19,c:0,f:28,unit:'g'},
+  {cat:'Aves',n:'Codorniz cruda',cal:134,p:22,c:0,f:4.5,unit:'g'},
+  // ── PESCADOS ──
+  {cat:'Pescados',n:'Salmón crudo',cal:179,p:20,c:0,f:11,unit:'g'},
+  {cat:'Pescados',n:'Salmón cocido',cal:208,p:20,c:0,f:13,unit:'g'},
+  {cat:'Pescados',n:'Atún rojo crudo',cal:144,p:23,c:0,f:5,unit:'g'},
+  {cat:'Pescados',n:'Atún en agua (lata)',cal:108,p:24,c:0,f:1,unit:'g'},
+  {cat:'Pescados',n:'Atún en aceite (lata)',cal:198,p:22,c:0,f:12,unit:'g'},
+  {cat:'Pescados',n:'Tilapia cruda',cal:96,p:20,c:0,f:1.7,unit:'g'},
+  {cat:'Pescados',n:'Tilapia cocida',cal:128,p:26,c:0,f:2.7,unit:'g'},
+  {cat:'Pescados',n:'Bacalao crudo',cal:82,p:18,c:0,f:0.7,unit:'g'},
+  {cat:'Pescados',n:'Bacalao cocido',cal:105,p:23,c:0,f:0.9,unit:'g'},
+  {cat:'Pescados',n:'Sardinas en agua',cal:208,p:25,c:0,f:11,unit:'g'},
+  {cat:'Pescados',n:'Caballa/Macarela cruda',cal:205,p:19,c:0,f:14,unit:'g'},
+  {cat:'Pescados',n:'Dorado/Mahi-mahi crudo',cal:85,p:18,c:0,f:0.7,unit:'g'},
+  {cat:'Pescados',n:'Merluza cruda',cal:74,p:17,c:0,f:0.4,unit:'g'},
+  {cat:'Pescados',n:'Trucha arcoíris cruda',cal:148,p:20,c:0,f:6.6,unit:'g'},
+  {cat:'Pescados',n:'Lubina cruda',cal:97,p:19,c:0,f:2,unit:'g'},
+  {cat:'Pescados',n:'Pargo crudo',cal:100,p:21,c:0,f:1.3,unit:'g'},
+  {cat:'Pescados',n:'Robalo crudo',cal:97,p:18,c:0,f:2.3,unit:'g'},
+  {cat:'Pescados',n:'Caballa japonesa (saba) cruda',cal:202,p:19,c:0,f:13,unit:'g'},
+  // ── MARISCOS ──
+  {cat:'Mariscos',n:'Camarones crudos',cal:71,p:13,c:0.9,f:1.1,unit:'g'},
+  {cat:'Mariscos',n:'Camarones cocidos',cal:99,p:24,c:0,f:0.3,unit:'g'},
+  {cat:'Mariscos',n:'Langosta cocida',cal:89,p:19,c:0,f:0.6,unit:'g'},
+  {cat:'Mariscos',n:'Cangrejo cocido',cal:97,p:19,c:0,f:1.8,unit:'g'},
+  {cat:'Mariscos',n:'Vieiras crudas',cal:69,p:12,c:3.2,f:0.5,unit:'g'},
+  {cat:'Mariscos',n:'Mejillones cocidos',cal:172,p:24,c:7.4,f:4.5,unit:'g'},
+  {cat:'Mariscos',n:'Pulpo cocido',cal:164,p:30,c:4.4,f:2,unit:'g'},
+  {cat:'Mariscos',n:'Calamar crudo',cal:92,p:16,c:3.1,f:1.4,unit:'g'},
+  {cat:'Mariscos',n:'Almejas cocidas',cal:148,p:26,c:5.1,f:2,unit:'g'},
+  {cat:'Mariscos',n:'Ostras crudas',cal:68,p:7,c:3.9,f:2.5,unit:'g'},
+  // ── HUEVOS ──
+  {cat:'Huevos',n:'Huevo entero',cal:78,p:6,c:0.6,f:5,unit:'unidad'},
+  {cat:'Huevos',n:'Clara de huevo',cal:17,p:3.6,c:0.2,f:0,unit:'unidad'},
+  {cat:'Huevos',n:'Yema de huevo',cal:55,p:2.7,c:0.6,f:4.5,unit:'unidad'},
+  {cat:'Huevos',n:'Claras pasteurizadas líquidas',cal:17,p:3.6,c:0.2,f:0,unit:'g'},
+  {cat:'Huevos',n:'Huevo de codorniz',cal:14,p:1.2,c:0.04,f:1,unit:'unidad'},
+  // ── SUPLEMENTOS ──
+  {cat:'Suplementos',n:'Proteína whey estándar (1 scoop=30g)',cal:120,p:24,c:3,f:2,unit:'scoop',gpScoop:30},
+  {cat:'Suplementos',n:'Proteína whey aislada (1 scoop=28g)',cal:110,p:25,c:1,f:1,unit:'scoop',gpScoop:28},
+  {cat:'Suplementos',n:'Proteína whey Nutrex (1 scoop=30g)',cal:130,p:25,c:4,f:2.5,unit:'scoop',gpScoop:30},
+  {cat:'Suplementos',n:'Caseína en polvo (1 scoop=33g)',cal:120,p:24,c:4,f:1,unit:'scoop',gpScoop:33},
+  {cat:'Suplementos',n:'Proteína vegetal guisante (1 scoop=30g)',cal:110,p:22,c:4,f:2,unit:'scoop',gpScoop:30},
+  {cat:'Suplementos',n:'Proteína vegetal arroz+guisante (1 scoop=33g)',cal:120,p:22,c:6,f:3,unit:'scoop',gpScoop:33},
+  {cat:'Suplementos',n:'Creatina monohidrato',cal:0,p:0,c:0,f:0,unit:'g'},
+  {cat:'Suplementos',n:'BCAA en polvo (1 scoop=10g)',cal:40,p:7,c:2,f:0.5,unit:'scoop',gpScoop:10},
+  // ── LÁCTEOS ──
+  {cat:'Lácteos',n:'Yogur griego 0%',cal:59,p:10,c:3.6,f:0.4,unit:'g'},
+  {cat:'Lácteos',n:'Yogur griego 2%',cal:73,p:9.9,c:3.5,f:1.9,unit:'g'},
+  {cat:'Lácteos',n:'Queso cottage bajo grasa',cal:98,p:11,c:3.4,f:4.3,unit:'g'},
+  {cat:'Lácteos',n:'Leche descremada',cal:34,p:3.4,c:5,f:0.1,unit:'ml'},
+  {cat:'Lácteos',n:'Leche entera',cal:61,p:3.2,c:4.8,f:3.3,unit:'ml'},
+  {cat:'Lácteos',n:'Queso blanco bajo grasa',cal:98,p:9.8,c:2.9,f:5,unit:'g'},
+  {cat:'Lácteos',n:'Queso cheddar',cal:402,p:25,c:1.3,f:33,unit:'g'},
+  {cat:'Lácteos',n:'Queso mozzarella',cal:280,p:28,c:2.2,f:17,unit:'g'},
+  {cat:'Lácteos',n:'Queso parmesano',cal:431,p:38,c:4,f:29,unit:'g'},
+  {cat:'Lácteos',n:'Requesón / Ricotta bajo grasa',cal:138,p:11,c:5.1,f:8,unit:'g'},
+  {cat:'Lácteos',n:'Kéfir (leche fermentada)',cal:61,p:3.4,c:4.8,f:3.5,unit:'ml'},
+  {cat:'Lácteos',n:'Leche de almendra sin azúcar',cal:15,p:0.5,c:0.6,f:1.2,unit:'ml'},
+  {cat:'Lácteos',n:'Leche de avena',cal:47,p:1,c:9,f:1.5,unit:'ml'},
+  // ── CEREALES Y GRANOS (crudo) ──
+  {cat:'Cereales (crudo)',n:'Arroz blanco crudo',cal:365,p:7,c:80,f:0.7,unit:'g',nota:'Triplica peso al cocinar'},
+  {cat:'Cereales (crudo)',n:'Arroz integral crudo',cal:370,p:8,c:77,f:2.9,unit:'g'},
+  {cat:'Cereales (crudo)',n:'Arroz jazmín crudo',cal:360,p:7,c:80,f:0.5,unit:'g'},
+  {cat:'Cereales (crudo)',n:'Arroz basmati crudo',cal:355,p:8,c:78,f:0.4,unit:'g'},
+  {cat:'Cereales (crudo)',n:'Avena cruda',cal:389,p:17,c:66,f:7,unit:'g'},
+  {cat:'Cereales (crudo)',n:'Quinoa cruda',cal:368,p:14,c:64,f:6,unit:'g',nota:'Dobla peso al cocinar'},
+  {cat:'Cereales (crudo)',n:'Pasta integral cruda',cal:348,p:15,c:65,f:3,unit:'g'},
+  {cat:'Cereales (crudo)',n:'Pasta blanca cruda',cal:371,p:13,c:74,f:1.5,unit:'g'},
+  {cat:'Cereales (crudo)',n:'Pasta de lentejas cruda',cal:335,p:25,c:54,f:2,unit:'g'},
+  {cat:'Cereales (crudo)',n:'Pasta de garbanzos cruda',cal:340,p:22,c:54,f:5,unit:'g'},
+  {cat:'Cereales (crudo)',n:'Bulgur crudo',cal:342,p:12,c:76,f:1.3,unit:'g'},
+  {cat:'Cereales (crudo)',n:'Cuscús crudo',cal:358,p:13,c:73,f:1.8,unit:'g'},
+  {cat:'Cereales (crudo)',n:'Amaranto crudo',cal:371,p:14,c:65,f:7,unit:'g'},
+  {cat:'Cereales (crudo)',n:'Mijo crudo',cal:378,p:11,c:73,f:4.2,unit:'g'},
+  {cat:'Cereales (crudo)',n:'Cebada cruda',cal:354,p:12,c:74,f:2.3,unit:'g'},
+  {cat:'Cereales (crudo)',n:'Teff crudo',cal:367,p:13,c:73,f:2.4,unit:'g'},
+  {cat:'Cereales (crudo)',n:'Farro crudo',cal:340,p:15,c:63,f:3,unit:'g'},
+  // ── CEREALES COCIDOS ──
+  {cat:'Cereales (cocido)',n:'Arroz blanco cocido',cal:130,p:2.7,c:28,f:0.3,unit:'g'},
+  {cat:'Cereales (cocido)',n:'Arroz integral cocido',cal:123,p:2.6,c:25,f:0.9,unit:'g'},
+  {cat:'Cereales (cocido)',n:'Arroz basmati cocido',cal:121,p:2.5,c:27,f:0.2,unit:'g'},
+  {cat:'Cereales (cocido)',n:'Pasta integral cocida',cal:124,p:5.3,c:26,f:1.1,unit:'g'},
+  {cat:'Cereales (cocido)',n:'Quinoa cocida',cal:120,p:4.4,c:21,f:1.9,unit:'g'},
+  {cat:'Cereales (cocido)',n:'Bulgur cocido',cal:83,p:3.1,c:18,f:0.2,unit:'g'},
+  {cat:'Cereales (cocido)',n:'Cuscús cocido',cal:112,p:3.8,c:23,f:0.2,unit:'g'},
+  {cat:'Cereales (cocido)',n:'Pan integral',cal:247,p:13,c:41,f:4.2,unit:'g'},
+  {cat:'Cereales (cocido)',n:'Pan de centeno',cal:259,p:8.5,c:48,f:3.3,unit:'g'},
+  {cat:'Cereales (cocido)',n:'Pan pita integral',cal:265,p:9,c:55,f:2.5,unit:'g'},
+  {cat:'Cereales (cocido)',n:'Tortilla de maíz',cal:234,p:5.7,c:49,f:3,unit:'g'},
+  {cat:'Cereales (cocido)',n:'Tortilla de trigo',cal:306,p:8,c:55,f:7,unit:'g'},
+  {cat:'Cereales (cocido)',n:'Arepas de maíz',cal:195,p:4,c:40,f:2,unit:'g'},
+  {cat:'Cereales (cocido)',n:'Pan bao (chino)',cal:255,p:8,c:51,f:1.5,unit:'g'},
+  {cat:'Cereales (cocido)',n:'Injera (etíope)',cal:160,p:5,c:31,f:1,unit:'g'},
+  // ── TUBÉRCULOS ──
+  {cat:'Tubérculos',n:'Papa cruda',cal:77,p:2,c:17,f:0.1,unit:'g'},
+  {cat:'Tubérculos',n:'Papa cocida',cal:87,p:1.9,c:20,f:0.1,unit:'g'},
+  {cat:'Tubérculos',n:'Batata / Camote cruda',cal:86,p:1.6,c:20,f:0.1,unit:'g'},
+  {cat:'Tubérculos',n:'Batata / Camote cocida',cal:90,p:2,c:21,f:0.1,unit:'g'},
+  {cat:'Tubérculos',n:'Yuca cruda',cal:160,p:1.4,c:38,f:0.3,unit:'g'},
+  {cat:'Tubérculos',n:'Yuca cocida',cal:165,p:1.4,c:39,f:0.3,unit:'g'},
+  {cat:'Tubérculos',n:'Plátano verde crudo',cal:122,p:1.3,c:29,f:0.4,unit:'g'},
+  {cat:'Tubérculos',n:'Plátano maduro',cal:122,p:1.3,c:31,f:0.4,unit:'g'},
+  {cat:'Tubérculos',n:'Ñame crudo',cal:118,p:1.5,c:28,f:0.2,unit:'g'},
+  {cat:'Tubérculos',n:'Malanga / Taro crudo',cal:112,p:1.5,c:27,f:0.2,unit:'g'},
+  {cat:'Tubérculos',n:'Papa morada cruda',cal:70,p:1.9,c:16,f:0.1,unit:'g'},
+  // ── VEGETALES DE HOJA VERDE ──
+  {cat:'Vegetales de Hoja',n:'Espinaca fresca',cal:23,p:2.9,c:3.6,f:0.4,unit:'g'},
+  {cat:'Vegetales de Hoja',n:'Lechuga romana',cal:17,p:1.2,c:3.3,f:0.3,unit:'g'},
+  {cat:'Vegetales de Hoja',n:'Kale / Col rizada',cal:49,p:4.3,c:9,f:0.9,unit:'g'},
+  {cat:'Vegetales de Hoja',n:'Acelga',cal:19,p:1.8,c:3.7,f:0.2,unit:'g'},
+  {cat:'Vegetales de Hoja',n:'Arúgula / Rúcula',cal:25,p:2.6,c:3.7,f:0.7,unit:'g'},
+  {cat:'Vegetales de Hoja',n:'Bok choy',cal:13,p:1.5,c:2.2,f:0.2,unit:'g'},
+  {cat:'Vegetales de Hoja',n:'Berros',cal:11,p:2.3,c:1.3,f:0.1,unit:'g'},
+  {cat:'Vegetales de Hoja',n:'Endivia',cal:17,p:1.3,c:3.4,f:0.2,unit:'g'},
+  {cat:'Vegetales de Hoja',n:'Col de Bruselas',cal:43,p:3.4,c:9,f:0.3,unit:'g'},
+  {cat:'Vegetales de Hoja',n:'Repollo / Col',cal:25,p:1.3,c:5.8,f:0.1,unit:'g'},
+  // ── VEGETALES CRUCÍFEROS ──
+  {cat:'Vegetales',n:'Brócoli',cal:34,p:2.8,c:7,f:0.4,unit:'g'},
+  {cat:'Vegetales',n:'Coliflor',cal:25,p:1.9,c:5,f:0.3,unit:'g'},
+  {cat:'Vegetales',n:'Nabo crudo',cal:28,p:0.9,c:6.4,f:0.1,unit:'g'},
+  {cat:'Vegetales',n:'Rábano',cal:16,p:0.7,c:3.4,f:0.1,unit:'g'},
+  // ── VEGETALES VARIOS ──
+  {cat:'Vegetales',n:'Pepino',cal:16,p:0.7,c:3.6,f:0.1,unit:'g'},
+  {cat:'Vegetales',n:'Tomate',cal:18,p:0.9,c:3.9,f:0.2,unit:'g'},
+  {cat:'Vegetales',n:'Zanahoria',cal:41,p:0.9,c:10,f:0.2,unit:'g'},
+  {cat:'Vegetales',n:'Pimiento rojo',cal:31,p:1,c:6,f:0.3,unit:'g'},
+  {cat:'Vegetales',n:'Pimiento verde',cal:20,p:0.9,c:4.6,f:0.2,unit:'g'},
+  {cat:'Vegetales',n:'Pimiento amarillo',cal:27,p:1,c:6.3,f:0.2,unit:'g'},
+  {cat:'Vegetales',n:'Espárragos',cal:20,p:2.2,c:3.9,f:0.1,unit:'g'},
+  {cat:'Vegetales',n:'Champiñones blancos',cal:22,p:3.1,c:3.3,f:0.3,unit:'g'},
+  {cat:'Vegetales',n:'Champiñones portobello',cal:22,p:2.1,c:3.9,f:0.4,unit:'g'},
+  {cat:'Vegetales',n:'Apio',cal:16,p:0.7,c:3,f:0.2,unit:'g'},
+  {cat:'Vegetales',n:'Cebolla blanca',cal:40,p:1.1,c:9.3,f:0.1,unit:'g'},
+  {cat:'Vegetales',n:'Cebolla morada',cal:40,p:1.1,c:9.3,f:0.1,unit:'g'},
+  {cat:'Vegetales',n:'Berenjena',cal:25,p:1,c:6,f:0.2,unit:'g'},
+  {cat:'Vegetales',n:'Calabacín / Zucchini',cal:17,p:1.2,c:3.1,f:0.3,unit:'g'},
+  {cat:'Vegetales',n:'Calabaza',cal:26,p:1,c:7,f:0.1,unit:'g'},
+  {cat:'Vegetales',n:'Alcachofa',cal:47,p:3.3,c:11,f:0.2,unit:'g'},
+  {cat:'Vegetales',n:'Remolacha cruda',cal:43,p:1.6,c:10,f:0.2,unit:'g'},
+  {cat:'Vegetales',n:'Maíz en grano',cal:86,p:3.2,c:19,f:1.2,unit:'g'},
+  {cat:'Vegetales',n:'Guisantes / Arvejas frescas',cal:81,p:5.4,c:14,f:0.4,unit:'g'},
+  {cat:'Vegetales',n:'Vainitas / Judías verdes',cal:31,p:1.8,c:7,f:0.2,unit:'g'},
+  {cat:'Vegetales',n:'Vegetales mixtos pequeña (~80g)',cal:28,p:1.8,c:5.2,f:0.3,unit:'unidad'},
+  {cat:'Vegetales',n:'Vegetales mixtos mediana (~150g)',cal:52,p:3.4,c:9.8,f:0.5,unit:'unidad'},
+  {cat:'Vegetales',n:'Vegetales mixtos grande (~250g)',cal:86,p:5.6,c:16.3,f:0.8,unit:'unidad'},
+  // ── FRUTAS ──
+  {cat:'Frutas',n:'Banana / Cambur',cal:89,p:1.1,c:23,f:0.3,unit:'g'},
+  {cat:'Frutas',n:'Manzana',cal:52,p:0.3,c:14,f:0.2,unit:'g'},
+  {cat:'Frutas',n:'Naranja',cal:47,p:0.9,c:12,f:0.1,unit:'g'},
+  {cat:'Frutas',n:'Piña / Ananá',cal:50,p:0.5,c:13,f:0.1,unit:'g'},
+  {cat:'Frutas',n:'Mango',cal:60,p:0.8,c:15,f:0.4,unit:'g'},
+  {cat:'Frutas',n:'Papaya / Lechoza',cal:43,p:0.5,c:11,f:0.3,unit:'g'},
+  {cat:'Frutas',n:'Arándanos / Blueberries',cal:57,p:0.7,c:14,f:0.3,unit:'g'},
+  {cat:'Frutas',n:'Fresa / Frutilla',cal:32,p:0.7,c:7.7,f:0.3,unit:'g'},
+  {cat:'Frutas',n:'Melón',cal:34,p:0.8,c:8.2,f:0.2,unit:'g'},
+  {cat:'Frutas',n:'Kiwi',cal:61,p:1.1,c:15,f:0.5,unit:'g'},
+  {cat:'Frutas',n:'Pera',cal:57,p:0.4,c:15,f:0.1,unit:'g'},
+  {cat:'Frutas',n:'Sandía / Patilla',cal:30,p:0.6,c:7.6,f:0.2,unit:'g'},
+  {cat:'Frutas',n:'Guayaba',cal:68,p:2.6,c:14,f:1,unit:'g'},
+  {cat:'Frutas',n:'Maracuyá / Parchita',cal:97,p:2.2,c:23,f:0.7,unit:'g'},
+  {cat:'Frutas',n:'Coco (pulpa)',cal:354,p:3.3,c:15,f:33,unit:'g'},
+  {cat:'Frutas',n:'Lichi',cal:66,p:0.8,c:17,f:0.4,unit:'g'},
+  {cat:'Frutas',n:'Jackfruit / Jaca',cal:95,p:1.7,c:23,f:0.6,unit:'g'},
+  {cat:'Frutas',n:'Uvas',cal:69,p:0.7,c:18,f:0.2,unit:'g'},
+  {cat:'Frutas',n:'Cereza',cal:63,p:1,c:16,f:0.2,unit:'g'},
+  {cat:'Frutas',n:'Granada',cal:83,p:1.7,c:19,f:1.2,unit:'g'},
+  {cat:'Frutas',n:'Higo fresco',cal:74,p:0.8,c:19,f:0.3,unit:'g'},
+  {cat:'Frutas',n:'Dátil seco',cal:277,p:1.8,c:75,f:0.2,unit:'g'},
+  {cat:'Frutas',n:'Ciruela',cal:46,p:0.7,c:11,f:0.3,unit:'g'},
+  {cat:'Frutas',n:'Durazno / Melocotón',cal:39,p:0.9,c:10,f:0.3,unit:'g'},
+  // ── LEGUMBRES Y PROTEÍNA VEGETAL ──
+  {cat:'Legumbres',n:'Frijoles negros cocidos',cal:132,p:8.9,c:24,f:0.5,unit:'g'},
+  {cat:'Legumbres',n:'Frijoles rojos cocidos',cal:127,p:8.7,c:23,f:0.5,unit:'g'},
+  {cat:'Legumbres',n:'Frijoles blancos cocidos',cal:139,p:9.7,c:25,f:0.4,unit:'g'},
+  {cat:'Legumbres',n:'Lentejas cocidas',cal:116,p:9,c:20,f:0.4,unit:'g'},
+  {cat:'Legumbres',n:'Lentejas rojas cocidas',cal:116,p:9,c:20,f:0.4,unit:'g'},
+  {cat:'Legumbres',n:'Garbanzos cocidos',cal:164,p:8.9,c:27,f:2.6,unit:'g'},
+  {cat:'Legumbres',n:'Edamame',cal:121,p:11,c:9,f:5.2,unit:'g'},
+  {cat:'Legumbres',n:'Tofu firme',cal:76,p:8,c:2,f:4.3,unit:'g'},
+  {cat:'Legumbres',n:'Tofu sedoso',cal:55,p:5,c:3,f:2.7,unit:'g'},
+  {cat:'Legumbres',n:'Tempeh',cal:193,p:19,c:9,f:11,unit:'g'},
+  {cat:'Legumbres',n:'Habas cocidas',cal:110,p:7.9,c:20,f:0.4,unit:'g'},
+  // ── COCINA ASIÁTICA ──
+  {cat:'Cocina Asiática',n:'Arroz de sushi cocido',cal:140,p:2.7,c:30,f:0.3,unit:'g'},
+  {cat:'Cocina Asiática',n:'Fideos soba (trigo sarraceno) cocidos',cal:99,p:5,c:21,f:0.1,unit:'g'},
+  {cat:'Cocina Asiática',n:'Fideos de arroz cocidos',cal:109,p:1.8,c:25,f:0.3,unit:'g'},
+  {cat:'Cocina Asiática',n:'Fideos ramen cocidos',cal:140,p:4,c:29,f:1.2,unit:'g'},
+  {cat:'Cocina Asiática',n:'Kimchi',cal:15,p:1.1,c:2.4,f:0.5,unit:'g'},
+  {cat:'Cocina Asiática',n:'Miso (pasta)',cal:199,p:12,c:26,f:6,unit:'g'},
+  {cat:'Cocina Asiática',n:'Sashimi de salmón',cal:179,p:20,c:0,f:11,unit:'g'},
+  {cat:'Cocina Asiática',n:'Arroz frito con huevo (1 taza ~200g)',cal:290,p:8,c:47,f:8,unit:'unidad'},
+  {cat:'Cocina Asiática',n:'Pollo al curry estilo thai',cal:150,p:14,c:7,f:7,unit:'g'},
+  {cat:'Cocina Asiática',n:'Pad thai (1 porción ~300g)',cal:400,p:18,c:55,f:12,unit:'unidad'},
+  {cat:'Cocina Asiática',n:'Gyoza/Dumpling al vapor (1 pieza)',cal:45,p:3,c:6,f:1,unit:'unidad'},
+  {cat:'Cocina Asiática',n:'Spring roll al vapor (1 pieza)',cal:65,p:3,c:10,f:1.5,unit:'unidad'},
+  {cat:'Cocina Asiática',n:'Bulgogi (carne coreana marinada)',cal:180,p:18,c:8,f:8,unit:'g'},
+  // ── COCINA MEDITERRÁNEA ──
+  {cat:'Cocina Mediterránea',n:'Falafel (1 pieza)',cal:57,p:2.3,c:5.4,f:3,unit:'unidad'},
+  {cat:'Cocina Mediterránea',n:'Hummus casero',cal:170,p:8,c:14,f:9.6,unit:'g'},
+  {cat:'Cocina Mediterránea',n:'Baba ganoush',cal:56,p:1.7,c:6,f:3,unit:'g'},
+  {cat:'Cocina Mediterránea',n:'Tabulé',cal:70,p:2.5,c:14,f:1,unit:'g'},
+  {cat:'Cocina Mediterránea',n:'Shawarma de pollo (~250g)',cal:370,p:32,c:35,f:10,unit:'unidad'},
+  {cat:'Cocina Mediterránea',n:'Queso feta',cal:264,p:14,c:4,f:21,unit:'g'},
+  {cat:'Cocina Mediterránea',n:'Aceitunas negras',cal:115,p:0.8,c:6,f:11,unit:'g'},
+  {cat:'Cocina Mediterránea',n:'Aceitunas verdes',cal:145,p:1,c:3.8,f:15,unit:'g'},
+  {cat:'Cocina Mediterránea',n:'Tzatziki (salsa)',cal:54,p:3.5,c:3,f:3,unit:'g'},
+  {cat:'Cocina Mediterránea',n:'Dolma/Hojas de parra rellenas (1 pza)',cal:55,p:1.5,c:8,f:2,unit:'unidad'},
+  {cat:'Cocina Mediterránea',n:'Ensalada griega (~200g)',cal:155,p:4,c:8,f:13,unit:'unidad'},
+  // ── COCINA LATINOAMERICANA ──
+  {cat:'Cocina Latinoamericana',n:'Habichuela/Frijoles guisados',cal:110,p:6,c:18,f:2,unit:'g'},
+  {cat:'Cocina Latinoamericana',n:'Tostones (plátano frito)',cal:185,p:1.7,c:31,f:6,unit:'g'},
+  {cat:'Cocina Latinoamericana',n:'Mangú (puré de plátano)',cal:175,p:2,c:37,f:3,unit:'g'},
+  {cat:'Cocina Latinoamericana',n:'Arepa de maíz',cal:195,p:4,c:40,f:2,unit:'g'},
+  {cat:'Cocina Latinoamericana',n:'Tamale de pollo (1 pieza)',cal:200,p:9,c:28,f:6,unit:'unidad'},
+  {cat:'Cocina Latinoamericana',n:'Pupusa salvadoreña (1 pieza)',cal:185,p:7,c:28,f:5,unit:'unidad'},
+  {cat:'Cocina Latinoamericana',n:'Gallo pinto (arroz+frijoles)',cal:150,p:6,c:28,f:2,unit:'g'},
+  {cat:'Cocina Latinoamericana',n:'Ceviche de camarón (~150g)',cal:120,p:15,c:8,f:2,unit:'unidad'},
+  {cat:'Cocina Latinoamericana',n:'Pollo guisado estilo caribeño',cal:165,p:24,c:5,f:5,unit:'g'},
+  {cat:'Cocina Latinoamericana',n:'Patacón',cal:210,p:2,c:35,f:7,unit:'unidad'},
+  {cat:'Cocina Latinoamericana',n:'Yuca frita',cal:215,p:1.5,c:40,f:5,unit:'g'},
+  {cat:'Cocina Latinoamericana',n:'Sancocho (caldo, 1 taza)',cal:120,p:8,c:16,f:2,unit:'unidad'},
+  // ── COCINA AFRICANA / MEDIO ORIENTE ──
+  {cat:'Cocina Africa/ME',n:'Fufu (yuca/ñame)',cal:267,p:1,c:65,f:0.1,unit:'g'},
+  {cat:'Cocina Africa/ME',n:'Jollof rice (arroz en salsa)',cal:175,p:4,c:35,f:3,unit:'g'},
+  {cat:'Cocina Africa/ME',n:'Suya (carne a la brasa especiada)',cal:200,p:25,c:4,f:9,unit:'g'},
+  {cat:'Cocina Africa/ME',n:'Maafe (estofado de maní)',cal:220,p:14,c:12,f:13,unit:'g'},
+  {cat:'Cocina Africa/ME',n:'Kushari (arroz+lentejas+pasta)',cal:170,p:6,c:33,f:2,unit:'g'},
+  {cat:'Cocina Africa/ME',n:'Kabsa (pollo+arroz árabe)',cal:185,p:13,c:27,f:4,unit:'g'},
+  {cat:'Cocina Africa/ME',n:'Shakshuka (huevos en tomate)',cal:130,p:8,c:10,f:7,unit:'g'},
+  {cat:'Cocina Africa/ME',n:'Ful medames (habas egipcias)',cal:110,p:7,c:18,f:1.5,unit:'g'},
+  // ── GRASAS Y ACEITES ──
+  {cat:'Grasas',n:'Aguacate / Palta',cal:160,p:2,c:9,f:15,unit:'g'},
+  {cat:'Grasas',n:'Aceite de oliva extra virgen (1 cda)',cal:124,p:0,c:0,f:14,unit:'cda',gpCda:14},
+  {cat:'Grasas',n:'Aceite de coco (1 cda)',cal:121,p:0,c:0,f:13.6,unit:'cda',gpCda:14},
+  {cat:'Grasas',n:'Aceite de aguacate (1 cda)',cal:124,p:0,c:0,f:14,unit:'cda',gpCda:14},
+  {cat:'Grasas',n:'Aceite de sésamo (1 cda)',cal:120,p:0,c:0,f:13.6,unit:'cda',gpCda:14},
+  {cat:'Grasas',n:'Mantequilla sin sal (1 cda)',cal:102,p:0.1,c:0,f:11.5,unit:'cda',gpCda:14},
+  {cat:'Grasas',n:'Ghee / Mantequilla clarificada (1 cda)',cal:120,p:0,c:0,f:13.4,unit:'cda',gpCda:14},
+  {cat:'Grasas',n:'Mantequilla de maní natural',cal:94,p:4,c:3.4,f:8,unit:'g'},
+  {cat:'Grasas',n:'Mantequilla de almendra',cal:98,p:3.4,c:3.8,f:9,unit:'g'},
+  {cat:'Grasas',n:'Mantequilla de cashew',cal:94,p:2.8,c:5.6,f:7.9,unit:'g'},
+  {cat:'Grasas',n:'Almendras',cal:579,p:21,c:22,f:50,unit:'g'},
+  {cat:'Grasas',n:'Nueces',cal:654,p:15,c:14,f:65,unit:'g'},
+  {cat:'Grasas',n:'Maní / Cacahuate',cal:567,p:26,c:16,f:49,unit:'g'},
+  {cat:'Grasas',n:'Semillas de chía',cal:486,p:17,c:42,f:31,unit:'g'},
+  {cat:'Grasas',n:'Semillas de linaza',cal:534,p:18,c:29,f:42,unit:'g'},
+  {cat:'Grasas',n:'Pistachos',cal:562,p:20,c:28,f:45,unit:'g'},
+  {cat:'Grasas',n:'Tahini / Pasta de sésamo',cal:595,p:17,c:21,f:54,unit:'g'},
+  {cat:'Grasas',n:'Cashews / Anacardos',cal:553,p:18,c:30,f:44,unit:'g'},
+  {cat:'Grasas',n:'Macadamias',cal:718,p:8,c:14,f:76,unit:'g'},
+  {cat:'Grasas',n:'Semillas de girasol',cal:584,p:21,c:20,f:51,unit:'g'},
+  {cat:'Grasas',n:'Semillas de calabaza',cal:559,p:30,c:11,f:49,unit:'g'},
+  {cat:'Grasas',n:'Aceitunas mixtas (10 pzas)',cal:60,p:0.4,c:1,f:6,unit:'unidad'},
+  // ── SNACKS ──
+  {cat:'Snacks',n:'Galleta de arroz (1 galleta)',cal:35,p:0.7,c:7.3,f:0.3,unit:'unidad'},
+  {cat:'Snacks',n:'Galleta de avena sin azúcar',cal:45,p:1.2,c:8,f:1.2,unit:'unidad'},
+  {cat:'Snacks',n:'Barra proteica (25g prot)',cal:200,p:25,c:20,f:5,unit:'unidad'},
+  {cat:'Snacks',n:'Mezcla de nueces y pasas (trail mix)',cal:462,p:10,c:47,f:29,unit:'g'},
+  {cat:'Snacks',n:'Palomitas sin mantequilla',cal:387,p:12,c:74,f:4,unit:'g'},
+  {cat:'Snacks',n:'Hummus con vegetales',cal:94,p:4,c:6,f:8,unit:'g'},
   {cat:'Proteína (crudo)',n:'Muslo de pollo crudo',cal:153,p:17,c:0,f:9,unit:'g',nota:'Crudo'},
   {cat:'Proteína (crudo)',n:'Carne magra de res cruda',cal:143,p:21,c:0,f:6,unit:'g',nota:'Crudo → cocido pierde ~30%'},
   {cat:'Proteína (crudo)',n:'Carne molida 80% cruda',cal:215,p:17,c:0,f:16,unit:'g',nota:'Crudo'},
@@ -3020,30 +3313,6 @@ var ALIMENTOS = [
   {cat:'Legumbres',n:'Garbanzos cocidos',cal:164,p:8.9,c:27,f:2.6,unit:'g'},
   {cat:'Legumbres',n:'Edamame',cal:121,p:11,c:9,f:5.2,unit:'g'},
   {cat:'Legumbres',n:'Tofu firme',cal:76,p:8,c:2,f:4.3,unit:'g'},
-  // ── SNACKS / OPCIONES LIBRES ──
-  {cat:'Snacks',n:'Galleta de arroz (1 galleta)',cal:35,p:0.7,c:7.3,f:0.3,unit:'unidad'},
-  {cat:'Snacks',n:'Galleta de arroz integral',cal:38,p:0.8,c:8,f:0.4,unit:'unidad'},
-  {cat:'Snacks',n:'Galleta de avena sin azúcar',cal:45,p:1.2,c:8,f:1.2,unit:'unidad'},
-  {cat:'Snacks',n:'Barra proteica (25g prot)',cal:200,p:25,c:20,f:5,unit:'unidad'},
-  {cat:'Snacks',n:'Mezcla de nueces y pasas (trail mix)',cal:462,p:10,c:47,f:29,unit:'g'},
-  {cat:'Snacks',n:'Palomitas sin mantequilla',cal:387,p:12,c:74,f:4,unit:'g'},
-  {cat:'Snacks',n:'Hummus',cal:170,p:8,c:14,f:9.6,unit:'g'},
-  {cat:'Snacks',n:'Apio con mantequilla de maní',cal:94,p:4,c:6,f:8,unit:'g'},
-  {cat:'Snacks',n:'Requesón / Ricotta bajo grasa',cal:138,p:11,c:5.1,f:8,unit:'g'},
-  // ── GRASAS ──
-  {cat:'Grasas',n:'Aguacate',cal:160,p:2,c:9,f:15,unit:'g'},
-  // Aceite de oliva en CUCHARADAS (1 cda = 14ml, 1/2 cda = 7ml, 1/4 cda = 3.5ml)
-  {cat:'Grasas',n:'Aceite de oliva (1 cda = 14ml)',cal:124,p:0,c:0,f:14,unit:'cda',gpCda:14},
-  {cat:'Grasas',n:'Aceite de coco (1 cda = 14ml)',cal:121,p:0,c:0,f:13.6,unit:'cda',gpCda:14},
-  {cat:'Grasas',n:'Aceite de aguacate (1 cda = 14ml)',cal:124,p:0,c:0,f:14,unit:'cda',gpCda:14},
-  {cat:'Grasas',n:'Mantequilla de maní natural',cal:94,p:4,c:3.4,f:8,unit:'g'},
-  {cat:'Grasas',n:'Almendras',cal:579,p:21,c:22,f:50,unit:'g'},
-  {cat:'Grasas',n:'Nueces',cal:654,p:15,c:14,f:65,unit:'g'},
-  {cat:'Grasas',n:'Maní',cal:567,p:26,c:16,f:49,unit:'g'},
-  {cat:'Grasas',n:'Semillas de chía',cal:486,p:17,c:42,f:31,unit:'g'},
-  {cat:'Grasas',n:'Semillas de linaza',cal:534,p:18,c:29,f:42,unit:'g'},
-  {cat:'Grasas',n:'Pistachos',cal:562,p:20,c:28,f:45,unit:'g'},
-  {cat:'Grasas',n:'Tahini / Pasta de sésamo',cal:595,p:17,c:21,f:54,unit:'g'},
 ];
 var GOAL_CFG = {
   deficit_agresivo:{mult:.75,txt:'Déficit agresivo (−25%)',color:'#3b82f6',needle:8},
@@ -3975,14 +4244,27 @@ comidas = [
 ];
 
 function buscarAlimento(q) {
-  if (!q || q.length < 2) return [];
+  var base = _nutCatFilter
+    ? ALIMENTOS.filter(function(a){return a.cat===_nutCatFilter;})
+    : ALIMENTOS;
+  if (!q || q.length < 2) {
+    return _nutCatFilter ? base.slice(0,15) : [];
+  }
   var ql = q.toLowerCase();
   var palabras = ql.split(/\s+/).filter(function(p){return p.length>1;});
-  return ALIMENTOS.filter(function(a){
+  return base.filter(function(a){
     var al = a.n.toLowerCase();
-    // fuzzy: all words must appear somewhere (any order)
     return palabras.every(function(p){return al.indexOf(p)>=0;}) || al.indexOf(ql)>=0;
-  }).slice(0,12);
+  }).slice(0,15);
+}
+function filtrarNutCat(cat) {
+  _nutCatFilter = (cat==='' || _nutCatFilter===cat) ? '' : cat;
+  // Re-render los dropdowns activos
+  document.querySelectorAll('.nut-dd').forEach(function(dd){dd.style.display='none';});
+  // Actualizar botones del filtro
+  document.querySelectorAll('.ncat-btn').forEach(function(b){
+    b.classList.toggle('ncat-act', b.dataset.cat===_nutCatFilter);
+  });
 }
 function getAlimento(n) { return ALIMENTOS.find(function(a){return a.n===n;}); }
 
@@ -4029,6 +4311,14 @@ function actualizarMedidor() {
   ge('cm-f').textContent=t.f+'g';
 }
 
+function renderNutCatBar() {
+  var wrap=ge('ncat-bar'); if(!wrap)return;
+  var cats=['Carnes Rojas','Aves','Pescados','Mariscos','Huevos','Vegetales','Vegetales de Hoja','Grasas','Frutas','Legumbres','Cereales (crudo)','Cereales (cocido)','Tubérculos','Lácteos','Suplementos','Cocina Asiática','Cocina Mediterránea','Cocina Latinoamericana','Cocina Africa/ME','Snacks'];
+  wrap.innerHTML='<button class="ncat-btn'+ (!_nutCatFilter?' ncat-act':'') +'" data-cat="" onclick="filtrarNutCat(\'\')">Todo</button>'+
+    cats.map(function(c){
+      return '<button class="ncat-btn'+(_nutCatFilter===c?' ncat-act':'')+'" data-cat="'+c+'" onclick="filtrarNutCat(\''+c.replace(/\'/g,"\\'")+'\')" >'+c+'</button>';
+    }).join('');
+}
 function renderNutBtns() {
   var wrap=ge('nut-btns'); if(!wrap)return;
   var act=clientes.filter(function(c){return c.activo!==false;});
@@ -4145,7 +4435,7 @@ function renderComidas() {
                 ' oninput="mostrarDD('+mi+','+ii+',this.value)"'+
                 ' onfocus="mostrarDD('+mi+','+ii+',this.value)"'+
                 ' onblur="setTimeout(function(){ocultarDD(\'dd'+mi+'_'+ii+'\')},180)">'+
-              '<div class="f-dd" id="dd'+mi+'_'+ii+'" style="display:none"></div>'+
+              '<div class="f-dd nut-dd" id="dd'+mi+'_'+ii+'" style="display:none"></div>'+
             '</div>'+
             '<div style="display:flex;align-items:center;gap:2px">'+
               '<input class="n-inp" type="number" value="'+(item.cant||1)+'" min=".5" step="'+stepVal+'"'+
@@ -4716,7 +5006,7 @@ function limpiarNut() {
   ge('calc-sec').style.display='none';
   nutMac={tdee:0,kcal:0,prot:0,carb:0,fat:0};
   comidas=[{nombre:'Desayuno',tipo:'ambos',dias:[],items:[{nombre:'',cant:1}]},{nombre:'Almuerzo',tipo:'ambos',dias:[],items:[{nombre:'',cant:100}]},{nombre:'Cena',tipo:'ambos',dias:[],items:[{nombre:'',cant:100}]}];
-  mostrarMacros(); actualizarGauge(); actualizarMedidor(); renderComidas(); renderNutBtns(); nutActualizar();
+  mostrarMacros(); actualizarGauge(); actualizarMedidor(); renderComidas(); renderNutBtns(); renderNutCatBar(); nutActualizar();
 }
 
 /* ══════════════════════════════════════════════════

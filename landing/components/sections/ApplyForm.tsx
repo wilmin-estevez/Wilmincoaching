@@ -19,6 +19,13 @@ import {
 // 3. Reemplaza el placeholder de abajo con tu ID real
 const FORMSPREE_ID = 'YOUR_FORM_ID' // ← reemplazar con tu ID de Formspree
 
+// ── Google Form de intake (se muestra DESPUÉS del pago en planes Transformación/Elite)
+// Pega aquí el enlace de tu Google Form cuando lo tengas listo
+const GOOGLE_FORM_URL = 'YOUR_GOOGLE_FORM_URL' // ← reemplazar con tu URL de Google Form
+
+// Planes que requieren el Google Form de intake (después del pago)
+const PLANES_CON_FORM = ['transformacion', 'elite']
+
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 interface FormData {
   nombre: string
@@ -33,6 +40,7 @@ export function ApplyForm() {
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [planSeleccionado, setPlanSeleccionado] = useState<string | null>(null)
 
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -40,6 +48,11 @@ export function ApplyForm() {
   const [objetivo, setObjetivo] = useState<string | null>(null)
   const [tiempo, setTiempo] = useState<string | null>(null)
   const [plan, setPlan] = useState<string | null>(null)
+
+  const handlePlanChange = (value: string | null) => {
+    setPlan(value)
+    setPlanSeleccionado(value)
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -121,6 +134,8 @@ export function ApplyForm() {
     }
   }
 
+  const needsGoogleForm = planSeleccionado && PLANES_CON_FORM.includes(planSeleccionado) && GOOGLE_FORM_URL !== 'YOUR_GOOGLE_FORM_URL'
+
   return (
     <section id="aplicar" className="border-t border-white/[0.04] py-20">
       <div className="mx-auto max-w-2xl px-6">
@@ -145,9 +160,33 @@ export function ApplyForm() {
               <h3 className="font-condensed mb-2 text-2xl font-black text-brand-text">
                 ¡Aplicación recibida!
               </h3>
-              <p className="text-[13px] text-brand-muted">
+              <p className="text-[13px] text-brand-muted mb-4">
                 Te contacto en menos de 24 horas. Sin spam. Solo resultados.
               </p>
+
+              {needsGoogleForm && (
+                <div className="mt-6 rounded-lg border border-orange/30 bg-orange/5 p-5">
+                  <p className="mb-1 text-[12px] font-semibold uppercase tracking-widest text-orange">
+                    Siguiente paso
+                  </p>
+                  <p className="mb-4 text-[13px] text-brand-muted">
+                    Para tu plan <strong className="text-brand-text">{planSeleccionado === 'transformacion' ? 'Transformación 8 Semanas' : 'Elite Mensual'}</strong>, necesito
+                    conocerte mejor. Completa este formulario de intake — toma menos de 5 minutos
+                    y me permite personalizar tu plan al 100%.
+                  </p>
+                  <a
+                    href={GOOGLE_FORM_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block rounded-lg bg-orange px-6 py-3 text-[13px] font-bold text-white transition hover:bg-orange/90"
+                  >
+                    Completar formulario de intake →
+                  </a>
+                  <p className="mt-3 text-[11px] text-brand-subtle">
+                    Este formulario se comparte una vez hayas realizado el pago.
+                  </p>
+                </div>
+              )}
             </div>
           </BlurFade>
         ) : (
@@ -207,7 +246,7 @@ export function ApplyForm() {
 
               <div className="flex flex-col gap-1.5">
                 <Label className="text-[9px] tracking-[2px] uppercase text-orange">¿Qué plan te interesa?</Label>
-                <Select required onValueChange={setPlan}>
+                <Select required onValueChange={handlePlanChange}>
                   <SelectTrigger className="border-white/[0.08] bg-white/[0.03] text-brand-muted focus:border-orange">
                     <SelectValue placeholder="Selecciona un plan" />
                   </SelectTrigger>
