@@ -4785,7 +4785,7 @@ function subirPlan(htmlContent, nombre, msgTemplate, phone) {
   var repo     = 'Wilmincoaching';
   var fileName = nombre.replace(/[^a-zA-Z0-9]/g,'_') + '_' + Date.now() + '.html';
   var filePath = 'planes/' + fileName;
-  var pageUrl  = 'https://htmlpreview.github.io/?https://github.com/'+owner+'/'+repo+'/blob/main/'+filePath;
+  var pageUrl  = 'https://wilminestevezcoaching.com/viewer.html?f=' + encodeURIComponent(filePath);
   var b64      = btoa(unescape(encodeURIComponent(htmlContent)));
   var hdrs     = {'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};
   var base     = 'https://api.github.com/repos/'+owner+'/'+repo;
