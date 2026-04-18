@@ -5230,6 +5230,12 @@ function initApp() {
       if(actualizado){ renderTodo(); renderComidas(); renderMensajes(); }
       cargarFotosDesdeNube();
     });
+    // Auto-pull cada 2 min para sincronizar cambios de otros dispositivos (ej: iPad)
+    setInterval(function(){
+      cargarDesdeNube(function(actualizado){
+        if(actualizado){ renderTodo(); renderComidas(); renderMensajes(); }
+      });
+    },120000);
   } catch(e) {
     console.error('Init error:', e);
   }
