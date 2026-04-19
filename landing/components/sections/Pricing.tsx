@@ -11,6 +11,7 @@ const plans = [
     price: '$47',
     period: 'Pago único · Producto digital',
     tag: 'Sin seguimiento directo',
+    hotmartUrl: 'https://pay.hotmart.com/V105451735H',
     features: [
       { text: 'Plan de entrenamiento 4 semanas completo', active: true },
       { text: 'Lista de compras semanal en PDF', active: true },
@@ -40,6 +41,7 @@ const plans = [
     cta: 'Aplicar al programa →',
     featured: true,
     note: 'El plan más elegido por quienes van en serio',
+    hotmartUrl: 'https://pay.hotmart.com/D105451839V',
   },
   {
     tier: 'Nivel 3 — Máxima Atención',
@@ -58,6 +60,7 @@ const plans = [
     cta: 'Quiero el Elite →',
     featured: false,
     note: 'Para quienes quieren lo mejor de lo mejor',
+    hotmartUrl: 'https://pay.hotmart.com/X105452209S',
   },
 ]
 
@@ -105,19 +108,20 @@ export function Pricing() {
                   ))}
                 </ul>
                 {plan.featured ? (
-                  <ShimmerButton
-                    onClick={() => document.getElementById('aplicar')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="w-full justify-center py-3 text-[12px]"
-                  >
-                    {plan.cta}
-                  </ShimmerButton>
+                  <a href={plan.hotmartUrl} target="_blank" rel="noopener noreferrer" className="block">
+                    <ShimmerButton className="w-full justify-center py-3 text-[12px]">
+                      {plan.cta}
+                    </ShimmerButton>
+                  </a>
                 ) : (
-                  <button
-                    onClick={() => document.getElementById('aplicar')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="w-full rounded border border-[rgba(255,69,0,0.3)] py-3 font-condensed text-[11px] font-bold tracking-[2px] uppercase text-orange transition-colors hover:bg-orange hover:text-white"
+                  <a
+                    href={plan.hotmartUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full rounded border border-[rgba(255,69,0,0.3)] py-3 font-condensed text-[11px] font-bold tracking-[2px] uppercase text-orange transition-colors hover:bg-orange hover:text-white text-center"
                   >
                     {plan.cta}
-                  </button>
+                  </a>
                 )}
                 <p className="mt-3 text-center text-[10px] text-brand-subtle">{plan.note}</p>
               </div>

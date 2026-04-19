@@ -23,17 +23,17 @@ const FORMSPREE_ID: string = 'YOUR_FORM_ID'
 // Google Form URL. Así el formulario de intake SOLO aparece después del pago.
 const PAYMENT_LINKS: Record<string, { url: string; price: string; label: string }> = {
   arranque: {
-    url: 'YOUR_STRIPE_LINK_ARRANQUE',
+    url: 'https://pay.hotmart.com/V105451735H',
     price: '$47',
     label: 'Arranque',
   },
   transformacion: {
-    url: 'YOUR_STRIPE_LINK_TRANSFORMACION',
+    url: 'https://pay.hotmart.com/D105451839V',
     price: '$197',
     label: 'Transformación 8 Semanas',
   },
   elite: {
-    url: 'YOUR_STRIPE_LINK_ELITE',
+    url: 'https://pay.hotmart.com/X105452209S',
     price: '$247',
     label: 'Elite Mensual',
   },
