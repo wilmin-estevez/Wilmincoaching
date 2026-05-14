@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -46,6 +47,22 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  /* WE System design tokens */
+  --color-we-orange:      #FF4500;
+  --color-we-orange-dark: #CC3700;
+  --color-we-black:       #0B0B0B;
+  --color-we-carbon:      #141414;
+  --color-we-carbon-1:    #181818;
+  --color-we-carbon-2:    #232323;
+  --color-we-carbon-3:    #2E2E2E;
+  --color-we-white:       #F5F5F5;
+  --color-we-gray-mid:    #8E8E8E;
+  --color-we-gray-low:    #555555;
+  --color-we-success:     #22C55E;
+  --color-we-warn:        #F59E0B;
+  --color-we-danger:      #EF4444;
+  --font-display: 'Oswald', Impact, sans-serif;
+  --font-body:    'Open Sans', system-ui, sans-serif;
 }
 
 :root {
@@ -81,6 +98,7 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --we-orange-soft: rgba(255, 69, 0, 0.10);
 }
 
 .dark {
@@ -120,11 +138,23 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    box-sizing: border-box;
   }
   body {
-    @apply bg-background text-foreground;
+    background: #0B0B0B;
+    color: #F5F5F5;
+    font-family: 'Open Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
   html {
     @apply font-sans;
   }
 }
+
+/* WE brand bar utility */
+.brand-bar { border-left: 4px solid #FF4500; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #141414; }
+::-webkit-scrollbar-thumb { background: #2E2E2E; border-radius: 2px; }
