@@ -2,9 +2,9 @@ import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const GH_TOKEN     = process.env.GH_TOKEN!
+const GH_TOKEN     = process.env.GH_TOKEN
 
-if (!SUPABASE_URL || !SUPABASE_KEY || !GH_TOKEN) {
+if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('Missing required env vars. Copy .env.local.example to .env.local and fill in values.')
   process.exit(1)
 }
@@ -15,7 +15,7 @@ const supabase = createClient<any>(SUPABASE_URL, SUPABASE_KEY)
 async function fetchSyncJson(): Promise<{ clientes: ClientV3[] }> {
   const res = await fetch(
     'https://api.github.com/repos/wilmin-estevez/Wilmincoaching/contents/data/sync.json',
-    { headers: { Authorization: `token ${GH_TOKEN}`, Accept: 'application/vnd.github.v3.raw' } }
+    { headers: { ...(GH_TOKEN ? { Authorization: `token ${GH_TOKEN}` } : {}), Accept: 'application/vnd.github.v3.raw' } }
   )
   if (!res.ok) throw new Error(`GitHub API ${res.status}: ${await res.text()}`)
   return res.json() as Promise<{ clientes: ClientV3[] }>
