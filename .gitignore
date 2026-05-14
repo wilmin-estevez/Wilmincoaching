@@ -1,0 +1,10 @@
+# Environment files
+we-system/.env.local
+we-system/.env*.local
+
+# Node modules
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
