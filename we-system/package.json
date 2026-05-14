@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "vitest run"
+    "test": "vitest run",
+    "migrate": "tsx --env-file=.env.local scripts/migrate-v3.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -23,7 +24,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "shadcn": "^4.7.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
@@ -31,7 +31,9 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.1",
     "jsdom": "^29.1.1",
+    "shadcn": "^4.7.0",
     "tailwindcss": "^4",
+    "tsx": "^4.22.0",
     "typescript": "^5",
     "vitest": "^4.1.6"
   }
