@@ -45,7 +45,7 @@ jobs:
           cp -r landing/out/. _site/
           # Coaching app at /app
           mkdir -p _site/app
-          cp app/index.html _site/app/index.html
+          cp -r app/. _site/app/
           # Client plans at /planes (publicly accessible)
           if [ -d planes ]; then
             cp -r planes _site/planes
