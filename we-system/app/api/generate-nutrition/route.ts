@@ -5,24 +5,51 @@ export const maxDuration = 60
 
 const MODEL = 'claude-haiku-4-5-20251001'
 
-const JSON_SCHEMA = `{
-  "lunes": {
-    "cycle_level": 0,
-    "desayuno": { "time": "7:00am", "options": [
-      { "name": "Avena con claras", "ingredients": [{ "food": "Avena", "amount_g": 80, "unit": "1 taza" }], "protein_g": 38, "carbs_g": 72, "fat_g": 4, "kcal": 468 },
-      { "name": "...", "ingredients": [...], "protein_g": 0, "carbs_g": 0, "fat_g": 0, "kcal": 0 }
-    ]},
-    "merienda": { "time": "10:30am", "options": [{...},{...}] },
-    "almuerzo":  { "time": "1:00pm",  "options": [{...},{...}] },
-    "cena":      { "time": "7:00pm",  "options": [{...},{...}] }
+const mealSchema = {
+  type: 'object' as const,
+  properties: {
+    time: { type: 'string' as const },
+    options: {
+      type: 'array' as const,
+      items: {
+        type: 'object' as const,
+        properties: {
+          name: { type: 'string' as const },
+          ingredients: {
+            type: 'array' as const,
+            items: {
+              type: 'object' as const,
+              properties: {
+                food: { type: 'string' as const },
+                amount_g: { type: 'number' as const },
+                unit: { type: 'string' as const },
+              },
+              required: ['food', 'amount_g', 'unit'],
+            },
+          },
+          protein_g: { type: 'number' as const },
+          carbs_g: { type: 'number' as const },
+          fat_g: { type: 'number' as const },
+          kcal: { type: 'number' as const },
+        },
+        required: ['name', 'ingredients', 'protein_g', 'carbs_g', 'fat_g', 'kcal'],
+      },
+    },
   },
-  "martes":    { "cycle_level": 1, "desayuno": {...}, "merienda": {...}, "almuerzo": {...}, "cena": {...} },
-  "miercoles": { "cycle_level": 0, "desayuno": {...}, "merienda": {...}, "almuerzo": {...}, "cena": {...} },
-  "jueves":    { "cycle_level": 1, "desayuno": {...}, "merienda": {...}, "almuerzo": {...}, "cena": {...} },
-  "viernes":   { "cycle_level": 2, "desayuno": {...}, "merienda": {...}, "almuerzo": {...}, "cena": {...} },
-  "sabado":    { "cycle_level": 2, "desayuno": {...}, "merienda": {...}, "almuerzo": {...}, "cena": {...} },
-  "domingo":   { "cycle_level": 2, "desayuno": {...}, "merienda": {...}, "almuerzo": {...}, "cena": {...} }
-}`
+  required: ['time', 'options'],
+}
+
+const daySchema = {
+  type: 'object' as const,
+  properties: {
+    cycle_level: { type: 'number' as const },
+    desayuno: mealSchema,
+    merienda: mealSchema,
+    almuerzo: mealSchema,
+    cena: mealSchema,
+  },
+  required: ['cycle_level', 'desayuno', 'merienda', 'almuerzo', 'cena'],
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,34 +61,47 @@ export async function POST(req: NextRequest) {
 
     const prompt = `Eres el asistente nutricional de Wilmin Estévez, fitness coach en RD.
 Cliente: ${client.name}, ${client.age ?? '?'} años, ${client.weight_kg ?? '?'}kg / ${client.height_m ?? '?'}m.
-Objetivo: ${client.goal ?? 'habits'}. Restricciones dietéticas: ${client.dietary_restrictions ?? 'ninguna'}.
-Días de entrenamiento: ${client.training_days ?? 4}/semana.
-Macros objetivo (día ALTO): ${macros.kcal}kcal · ${macros.protein_g}g proteína · ${macros.fat_g}g grasa.
-Carbohidratos por nivel: ALTO=${macros.carbs_high_g}g · MEDIO=${macros.carbs_mid_g}g · BAJO=${macros.carbs_low_g}g.
+Objetivo: ${client.goal ?? 'habits'}. Restricciones: ${client.dietary_restrictions ?? 'ninguna'}.
+Macros (día ALTO): ${macros.kcal}kcal · ${macros.protein_g}g prot · ${macros.fat_g}g grasa.
+Carbohidratos: ALTO=${macros.carbs_high_g}g · MEDIO=${macros.carbs_mid_g}g · BAJO=${macros.carbs_low_g}g.
 Ciclo de carbos: ${cycleSummary}.
+cycle_level: ALTO=0, MEDIO=1, BAJO=2.
 
-Genera un plan nutricional de carb cycling para 7 días con:
+Genera un plan nutricional de 7 días con:
 - 4 comidas: Desayuno (7:00am) · Merienda (10:30am) · Almuerzo (1:00pm) · Cena (7:00pm)
 - Exactamente 2 opciones por comida
-- Cada opción: name, ingredients (máx 4 ingredientes con food/amount_g/unit), protein_g, carbs_g, fat_g, kcal
-- Ajusta carbos según nivel del día (ALTO/MEDIO/BAJO)
+- Máx 4 ingredientes por opción
 - Alimentos accesibles en República Dominicana
-- cycle_level: ${daysEs.map((d, i) => `${d}=${cycle[i] ?? 2}`).join(', ')}
-- Responde SOLO con JSON válido, sin texto antes ni después:
-${JSON_SCHEMA}`
+- Ajusta los carbos según el nivel de cada día`
 
     const message = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 8192,
-      messages: [{ role: 'user', content: prompt }],
+      tools: [{
+        name: 'submit_plan',
+        description: 'Submit the 7-day nutrition plan',
+        input_schema: {
+          type: 'object' as const,
+          properties: {
+            lunes: daySchema,
+            martes: daySchema,
+            miercoles: daySchema,
+            jueves: daySchema,
+            viernes: daySchema,
+            sabado: daySchema,
+            domingo: daySchema,
+          },
+          required: ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'],
+        },
+      }],
+      tool_choice: { type: 'tool' as const, name: 'submit_plan' },
+      messages: [{ role: 'user' as const, content: prompt }],
     })
 
-    const text = message.content[0].type === 'text' ? message.content[0].text : ''
-    const start = text.indexOf('{')
-    const end = text.lastIndexOf('}')
-    if (start === -1 || end === -1) throw new Error('No se encontró JSON en la respuesta')
+    const toolUse = message.content.find(b => b.type === 'tool_use')
+    if (!toolUse || toolUse.type !== 'tool_use') throw new Error('No se generó el plan')
 
-    const meals = JSON.parse(text.slice(start, end + 1))
+    const meals = toolUse.input
     return NextResponse.json({ meals })
   } catch (err) {
     console.error('[generate-nutrition]', err)

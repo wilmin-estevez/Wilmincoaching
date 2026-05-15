@@ -5,6 +5,31 @@ export const maxDuration = 60
 
 const MODEL = 'claude-haiku-4-5-20251001'
 
+const exerciseSchema = {
+  type: 'object' as const,
+  properties: {
+    name: { type: 'string' as const },
+    muscle: { type: 'string' as const },
+    equipment: { type: 'string' as const },
+    sets: { type: 'number' as const },
+    reps: { type: 'string' as const },
+    rest_s: { type: 'number' as const },
+    weight: { type: 'string' as const },
+    gif_url: { type: 'string' as const },
+    notes: { type: 'string' as const },
+  },
+  required: ['name', 'muscle', 'equipment', 'sets', 'reps', 'rest_s', 'weight'],
+}
+
+const daySchema = {
+  type: 'object' as const,
+  properties: {
+    name: { type: 'string' as const },
+    exercises: { type: 'array' as const, items: exerciseSchema },
+  },
+  required: ['name', 'exercises'],
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { client } = await req.json()
@@ -13,40 +38,37 @@ export async function POST(req: NextRequest) {
     const ALL_DAYS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
     const trainingDays = ALL_DAYS.slice(0, daysCount)
 
-    const schemaExample = trainingDays.map((d) =>
-      `  "${d}": { "name": "Nombre del día", "exercises": [{ "name": "Sentadilla", "muscle": "Pierna · Glúteo", "equipment": "Barra olímpica", "sets": 4, "reps": "12", "rest_s": 90, "weight": "60kg", "gif_url": "", "notes": "" }] }`
-    ).join(',\n')
+    const dayProperties: Record<string, typeof daySchema> = {}
+    for (const d of trainingDays) dayProperties[d] = daySchema
 
     const prompt = `Eres el asistente de entrenamiento de Wilmin Estévez, fitness coach en RD.
 Cliente: ${client.name}, ${client.age ?? '?'} años, ${client.weight_kg ?? '?'}kg.
 Objetivo: ${client.goal ?? 'habits'}. Experiencia: ${client.experience ?? 'intermedio'}.
-Días disponibles: ${daysCount} (${trainingDays.join(', ')}).
-Acceso: ${client.gym_access ?? 'gimnasio completo'}.
-Lesiones/limitaciones: ${client.injuries ?? 'ninguna'}.
+Días: ${trainingDays.join(', ')}. Acceso: ${client.gym_access ?? 'gimnasio completo'}.
+Lesiones: ${client.injuries ?? 'ninguna'}.
 
-Genera una rutina de ${daysCount} días (${trainingDays.join(', ')}) con:
-- Nombre del día (ej: "Pierna y Glúteo", "Pecho y Tríceps", "Espalda y Bíceps", "Hombro y Core")
-- 5 a 7 ejercicios por día
-- Cada ejercicio: name, muscle (músculos trabajados), equipment, sets (número), reps (string, ej: "12" o "8-12"), rest_s (segundos), weight (peso sugerido como string, ej: "60kg" o "Peso corporal"), gif_url (string vacío ""), notes (string vacío "")
-- Nivel adecuado para experiencia: ${client.experience ?? 'intermedio'}
-- Solo incluye los días de entrenamiento; omite los días de descanso del JSON
-- Responde ÚNICAMENTE en JSON válido con esta estructura exacta:
-{
-${schemaExample}
-}`
+Genera una rutina de ${daysCount} días con nombre de día y 5–6 ejercicios por día.`
 
     const message = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 8192,
-      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 4096,
+      tools: [{
+        name: 'submit_routine',
+        description: 'Submit the training routine',
+        input_schema: {
+          type: 'object' as const,
+          properties: dayProperties,
+          required: trainingDays,
+        },
+      }],
+      tool_choice: { type: 'tool' as const, name: 'submit_routine' },
+      messages: [{ role: 'user' as const, content: prompt }],
     })
 
-    const text = message.content[0].type === 'text' ? message.content[0].text : ''
-    const start = text.indexOf('{')
-    const end = text.lastIndexOf('}')
-    if (start === -1 || end === -1) throw new Error('No se encontró JSON en la respuesta')
+    const toolUse = message.content.find(b => b.type === 'tool_use')
+    if (!toolUse || toolUse.type !== 'tool_use') throw new Error('No se generó la rutina')
 
-    const days = JSON.parse(text.slice(start, end + 1))
+    const days = toolUse.input
     return NextResponse.json({ days })
   } catch (err) {
     console.error('[generate-training]', err)
