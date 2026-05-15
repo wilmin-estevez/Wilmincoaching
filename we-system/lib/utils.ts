@@ -20,3 +20,20 @@ export function formatDate(dateStr: string): string {
     year: 'numeric',
   })
 }
+
+export function daysRemaining(expiresAt: string | null): number | null {
+  if (!expiresAt) return null
+  return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000)
+}
+
+const GOAL_LABELS: Record<string, string> = {
+  lose_fat:    'Pérdida de grasa',
+  gain_muscle: 'Ganar músculo',
+  habits:      'Hábitos',
+  performance: 'Rendimiento',
+}
+
+export function goalLabel(goal: string | null): string {
+  if (!goal) return '—'
+  return GOAL_LABELS[goal] ?? goal
+}
