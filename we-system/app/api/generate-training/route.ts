@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { anthropic, MODEL } from '@/lib/claude'
+import { anthropic } from '@/lib/claude'
+
+export const maxDuration = 60
+
+const MODEL = 'claude-haiku-4-5-20251001'
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,10 +42,11 @@ ${schemaExample}
     })
 
     const text = message.content[0].type === 'text' ? message.content[0].text : ''
-    const match = text.match(/\{[\s\S]*\}/)
-    if (!match) throw new Error('No se encontró JSON válido en la respuesta')
+    const start = text.indexOf('{')
+    const end = text.lastIndexOf('}')
+    if (start === -1 || end === -1) throw new Error('No se encontró JSON en la respuesta')
 
-    const days = JSON.parse(match[0])
+    const days = JSON.parse(text.slice(start, end + 1))
     return NextResponse.json({ days })
   } catch (err) {
     console.error('[generate-training]', err)
