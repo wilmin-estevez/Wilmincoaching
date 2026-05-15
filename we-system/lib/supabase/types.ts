@@ -162,6 +162,14 @@ export interface FormSubmission {
   created_at: string
 }
 
+export interface ClientNote {
+  id: string
+  client_id: string
+  content: string
+  category: string
+  created_at: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -172,6 +180,7 @@ export interface Database {
       training_plans: { Row: TrainingPlan; Insert: Partial<TrainingPlan>; Update: Partial<TrainingPlan> }
       payments: { Row: Payment; Insert: Partial<Payment>; Update: Partial<Payment> }
       form_submissions: { Row: FormSubmission; Insert: Partial<FormSubmission>; Update: Partial<FormSubmission> }
+      client_notes: { Row: ClientNote; Insert: Partial<ClientNote>; Update: Partial<ClientNote> }
     }
   }
 }
