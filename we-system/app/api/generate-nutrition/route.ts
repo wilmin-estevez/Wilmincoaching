@@ -20,17 +20,17 @@ const mealSchema = {
             items: {
               type: 'object' as const,
               properties: {
-                food: { type: 'string' as const },
+                food:     { type: 'string' as const },
                 amount_g: { type: 'number' as const },
-                unit: { type: 'string' as const },
+                unit:     { type: 'string' as const },
               },
               required: ['food', 'amount_g', 'unit'],
             },
           },
           protein_g: { type: 'number' as const },
-          carbs_g: { type: 'number' as const },
-          fat_g: { type: 'number' as const },
-          kcal: { type: 'number' as const },
+          carbs_g:   { type: 'number' as const },
+          fat_g:     { type: 'number' as const },
+          kcal:      { type: 'number' as const },
         },
         required: ['name', 'ingredients', 'protein_g', 'carbs_g', 'fat_g', 'kcal'],
       },
@@ -46,10 +46,39 @@ const daySchema = {
     desayuno: mealSchema,
     merienda: mealSchema,
     almuerzo: mealSchema,
-    cena: mealSchema,
+    cena:     mealSchema,
   },
   required: ['cycle_level', 'desayuno', 'merienda', 'almuerzo', 'cena'],
 }
+
+const MEASUREMENT_RULES = `
+REGLAS DE MEDIDAS (el campo "unit" debe ser la medida legible completa):
+- Huevos enteros: "1 huevo", "2 huevos" (NUNCA en gramos)
+- Claras de huevo: "2 claras", "4 claras" (NUNCA en gramos)
+- Leche y líquidos: "240ml (1 vaso)", "480ml (2 vasos)", "120ml (½ vaso)"
+- Avena: "½ taza", "1 taza"
+- Arroz, habichuelas: "½ taza cocida", "1 taza cocida"
+- Plátano maduro: "1 plátano maduro pequeño", "1 plátano maduro mediano", "1 plátano maduro grande"
+- Plátano verde: "½ plátano verde", "1 plátano verde"
+- Pan de molde: "1 rebanada", "2 rebanadas"
+- Frutas medianas (manzana, naranja, guayaba): "1 unidad pequeña", "1 unidad mediana"
+- Aceite: "1 cdta", "1 cda"
+- Para todo lo demás que sí se mide en gramos, pon: "150g", "200g", etc.`
+
+const FOOD_RULES = `
+VOCABULARIO Y RESTRICCIONES DE ALIMENTOS:
+- SIEMPRE arroz blanco (NUNCA arroz integral o arroz moreno)
+- Batata (NUNCA camote o boniato)
+- Almendras (en vez de nueces, maní o mantequilla de maní)
+- Usa mantequilla de almendras si aplica, NUNCA mantequilla de maní
+- Plátano maduro o plátano verde (no banana)
+- Yuca, ñame, batata, auyama — son los carbohidratos locales dominicanos
+- Longaniza dominicana (no salchicha italiana)
+- Pollo, res, cerdo — términos dominicanos estándar
+- Habichuelas (no frijoles ni judías)
+- No uses quinoa — usa arroz blanco o yuca
+- No uses nueces — usa almendras tostadas
+- Usa alimentos que se consiguen fácilmente en supermercados dominicanos`
 
 export async function POST(req: NextRequest) {
   try {
@@ -66,13 +95,14 @@ Macros (día ALTO): ${macros.kcal}kcal · ${macros.protein_g}g prot · ${macros.
 Carbohidratos: ALTO=${macros.carbs_high_g}g · MEDIO=${macros.carbs_mid_g}g · BAJO=${macros.carbs_low_g}g.
 Ciclo de carbos: ${cycleSummary}.
 cycle_level: ALTO=0, MEDIO=1, BAJO=2.
+${MEASUREMENT_RULES}
+${FOOD_RULES}
 
 Genera un plan nutricional de 7 días con:
 - 4 comidas: Desayuno (7:00am) · Merienda (10:30am) · Almuerzo (1:00pm) · Cena (7:00pm)
 - Exactamente 2 opciones por comida
 - Máx 4 ingredientes por opción
-- Alimentos accesibles en República Dominicana
-- Ajusta los carbos según el nivel de cada día`
+- Ajusta carbos según nivel del día (ALTO/MEDIO/BAJO)`
 
     const message = await anthropic.messages.create({
       model: MODEL,
@@ -83,13 +113,8 @@ Genera un plan nutricional de 7 días con:
         input_schema: {
           type: 'object' as const,
           properties: {
-            lunes: daySchema,
-            martes: daySchema,
-            miercoles: daySchema,
-            jueves: daySchema,
-            viernes: daySchema,
-            sabado: daySchema,
-            domingo: daySchema,
+            lunes: daySchema, martes: daySchema, miercoles: daySchema,
+            jueves: daySchema, viernes: daySchema, sabado: daySchema, domingo: daySchema,
           },
           required: ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'],
         },
@@ -101,8 +126,7 @@ Genera un plan nutricional de 7 días con:
     const toolUse = message.content.find(b => b.type === 'tool_use')
     if (!toolUse || toolUse.type !== 'tool_use') throw new Error('No se generó el plan')
 
-    const meals = toolUse.input
-    return NextResponse.json({ meals })
+    return NextResponse.json({ meals: toolUse.input })
   } catch (err) {
     console.error('[generate-nutrition]', err)
     return NextResponse.json(

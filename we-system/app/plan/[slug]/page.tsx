@@ -70,7 +70,7 @@ export default async function PublicPlanPage({
         <div className="w-9 h-9 bg-we-orange rounded-md flex items-center justify-center text-white font-display font-bold text-sm flex-shrink-0">
           WE
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-[10px] text-we-gray-mid uppercase tracking-widest">
             Plan personalizado
           </div>
@@ -78,6 +78,14 @@ export default async function PublicPlanPage({
             {clientName}
           </div>
         </div>
+        <a
+          href={`/plan/${slug}/print`}
+          target="_blank"
+          rel="noreferrer"
+          className="flex-shrink-0 px-3 py-1.5 border border-we-carbon-3 text-we-gray-mid hover:text-we-white hover:border-we-orange text-[10px] font-bold tracking-widest uppercase rounded-lg transition-colors"
+        >
+          PDF
+        </a>
       </div>
 
       <div className="px-4 py-6 max-w-2xl mx-auto space-y-10 pb-20">

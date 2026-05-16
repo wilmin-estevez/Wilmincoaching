@@ -52,7 +52,7 @@ export default function DayPlanView({ day, dayName }: { day: DayMeals; dayName: 
                     <div className="space-y-0.5">
                       {opt.ingredients.map((ing, j) => (
                         <div key={j} className="text-[9px] text-we-gray-mid leading-relaxed">
-                          {ing.food} — {ing.amount_g}g ({ing.unit})
+                          {ing.food} — {ing.unit}
                         </div>
                       ))}
                     </div>

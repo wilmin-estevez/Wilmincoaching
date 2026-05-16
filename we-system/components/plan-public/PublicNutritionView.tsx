@@ -69,7 +69,7 @@ export default function PublicNutritionView({ plan }: { plan: NutritionPlan }) {
                           <div className="space-y-1 mb-2">
                             {opt.ingredients.map((ing, j) => (
                               <div key={j} className="text-xs text-we-gray-mid">
-                                • {ing.food} — {ing.amount_g}g ({ing.unit})
+                                • {ing.food} — {ing.unit}
                               </div>
                             ))}
                           </div>
