@@ -20,7 +20,8 @@ export default async function PublicPlanPage({
 
   // If slug belongs to a training plan instead, resolve via client
   if (!nutritionRaw) {
-    const { data: trainingBySlug } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: trainingBySlug } = await (supabase as any)
       .from('training_plans')
       .select('client_id')
       .eq('public_slug', slug)
@@ -28,10 +29,11 @@ export default async function PublicPlanPage({
 
     if (!trainingBySlug) notFound()
 
+    const clientIdFromTraining = (trainingBySlug as { client_id: string }).client_id
     const { data: nutritionByClient } = await supabase
       .from('nutrition_plans')
       .select('*')
-      .eq('client_id', trainingBySlug.client_id)
+      .eq('client_id', clientIdFromTraining)
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
