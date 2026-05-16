@@ -12,11 +12,33 @@ export default async function PublicPlanPage({
   const { slug } = await params
   const supabase = createServiceClient()
 
-  const { data: nutritionRaw } = await supabase
+  let { data: nutritionRaw } = await supabase
     .from('nutrition_plans')
     .select('*')
     .eq('public_slug', slug)
     .single()
+
+  // If slug belongs to a training plan instead, resolve via client
+  if (!nutritionRaw) {
+    const { data: trainingBySlug } = await supabase
+      .from('training_plans')
+      .select('client_id')
+      .eq('public_slug', slug)
+      .single()
+
+    if (!trainingBySlug) notFound()
+
+    const { data: nutritionByClient } = await supabase
+      .from('nutrition_plans')
+      .select('*')
+      .eq('client_id', trainingBySlug.client_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    nutritionRaw = nutritionByClient
+    if (!nutritionRaw) notFound()
+  }
 
   const nutritionPlan = nutritionRaw as unknown as NutritionPlan | null
   if (!nutritionPlan) notFound()
