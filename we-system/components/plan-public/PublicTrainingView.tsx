@@ -1,6 +1,68 @@
-import type { TrainingPlan, TrainingPlanDays } from '@/lib/supabase/types'
+'use client'
+
+import { useEffect, useState } from 'react'
+import type { TrainingPlan, TrainingPlanDays, Exercise } from '@/lib/supabase/types'
+import { findExerciseGif } from '@/lib/exerciseGif'
 
 const DAYS_ES = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
+
+function PublicExerciseRow({ ex, index }: { ex: Exercise; index: number }) {
+  const [gifUrl, setGifUrl] = useState<string | null>(null)
+  const [gifOpen, setGifOpen] = useState(false)
+
+  useEffect(() => {
+    findExerciseGif(ex.name).then(setGifUrl)
+  }, [ex.name])
+
+  return (
+    <div className="px-4 py-3 flex items-start gap-3">
+      <div className="w-5 h-5 rounded-full bg-we-carbon-3 flex items-center justify-center text-[9px] text-we-gray-mid font-bold flex-shrink-0 mt-0.5">
+        {index + 1}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="text-sm font-bold text-we-white">{ex.name}</div>
+          {gifUrl && (
+            <button
+              type="button"
+              onClick={() => setGifOpen(o => !o)}
+              className="text-[9px] font-bold text-we-orange border border-we-orange/40 rounded px-1.5 py-0.5 hover:bg-we-orange/10 transition-colors"
+            >
+              {gifOpen ? 'OCULTAR' : 'VER'}
+            </button>
+          )}
+        </div>
+        <div className="text-[10px] text-we-gray-mid">{ex.muscle}</div>
+        {gifUrl && gifOpen && (
+          <div className="mt-3 rounded-lg overflow-hidden bg-we-carbon-3 inline-block">
+            <img
+              src={gifUrl}
+              alt={ex.name}
+              className="max-h-48 w-auto rounded-lg"
+              loading="lazy"
+            />
+          </div>
+        )}
+      </div>
+      <div className="flex gap-3 text-[10px] text-we-gray-mid text-center flex-shrink-0">
+        <div>
+          <div className="text-we-white font-bold text-sm">{ex.sets}×{ex.reps}</div>
+          <div>series</div>
+        </div>
+        {ex.weight && (
+          <div>
+            <div className="text-we-orange font-bold text-sm">{ex.weight}</div>
+            <div>peso</div>
+          </div>
+        )}
+        <div>
+          <div className="text-we-white font-bold text-sm">{ex.rest_s}s</div>
+          <div>desc.</div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function PublicTrainingView({ plan }: { plan: TrainingPlan }) {
   const days = plan.days as TrainingPlanDays
@@ -27,31 +89,7 @@ export default function PublicTrainingView({ plan }: { plan: TrainingPlan }) {
             </div>
             <div className="divide-y divide-we-carbon-2">
               {dayData.exercises.map((ex, i) => (
-                <div key={i} className="px-4 py-3 flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-we-carbon-3 flex items-center justify-center text-[9px] text-we-gray-mid font-bold flex-shrink-0 mt-0.5">
-                    {i + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-we-white">{ex.name}</div>
-                    <div className="text-[10px] text-we-gray-mid">{ex.muscle}</div>
-                  </div>
-                  <div className="flex gap-3 text-[10px] text-we-gray-mid text-center flex-shrink-0">
-                    <div>
-                      <div className="text-we-white font-bold text-sm">{ex.sets}×{ex.reps}</div>
-                      <div>series</div>
-                    </div>
-                    {ex.weight && (
-                      <div>
-                        <div className="text-we-orange font-bold text-sm">{ex.weight}</div>
-                        <div>peso</div>
-                      </div>
-                    )}
-                    <div>
-                      <div className="text-we-white font-bold text-sm">{ex.rest_s}s</div>
-                      <div>desc.</div>
-                    </div>
-                  </div>
-                </div>
+                <PublicExerciseRow key={i} ex={ex} index={i} />
               ))}
             </div>
           </div>
