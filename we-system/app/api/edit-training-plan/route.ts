@@ -15,8 +15,9 @@ const exerciseSchema = {
     reps:      { type: 'string' as const },
     rest_s:    { type: 'number' as const },
     weight:    { type: 'string' as const },
-    gif_url:   { type: 'string' as const },
-    notes:     { type: 'string' as const },
+    gif_url:        { type: 'string' as const },
+    notes:          { type: 'string' as const },
+    superset_group: { type: 'string' as const },
   },
   required: ['name', 'muscle', 'equipment', 'sets', 'reps', 'rest_s', 'weight'],
 }

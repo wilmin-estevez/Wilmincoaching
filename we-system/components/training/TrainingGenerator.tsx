@@ -5,7 +5,19 @@ import type { Client, TrainingPlanDays } from '@/lib/supabase/types'
 import { DAYS_ES } from '@/lib/macros'
 import DayTrainingView from './DayTrainingView'
 
-export default function TrainingGenerator({ client }: { client: Client }) {
+interface PendingCopy {
+  id: string
+  days: TrainingPlanDays
+  sourceName: string
+}
+
+interface Props {
+  client: Client
+  previousPlan?: TrainingPlanDays | null
+  pendingCopyPlan?: PendingCopy | null
+}
+
+export default function TrainingGenerator({ client, previousPlan, pendingCopyPlan }: Props) {
   const [plan, setPlan] = useState<TrainingPlanDays | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -13,20 +25,32 @@ export default function TrainingGenerator({ client }: { client: Client }) {
   const [error, setError] = useState<string | null>(null)
   const [editMsg, setEditMsg] = useState('')
   const [editing, setEditing] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+
+  const [showCopyModal, setShowCopyModal] = useState(false)
+  const [clients, setClients] = useState<Array<{ id: string; name: string }>>([])
+  const [copyTargetId, setCopyTargetId] = useState('')
+  const [copying, setCopying] = useState(false)
+  const [copyError, setCopyError] = useState<string | null>(null)
+  const [copySuccess, setCopySuccess] = useState(false)
+
+  const [pendingCopy, setPendingCopy] = useState<PendingCopy | null>(pendingCopyPlan ?? null)
+  const [approving, setApproving] = useState(false)
 
   async function generatePlan() {
     setLoading(true)
     setError(null)
+    setEditMode(false)
+    setSavedSlug(null)
     try {
       const res = await fetch('/api/generate-training', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client }),
+        body: JSON.stringify({ client, previousPlan: previousPlan ?? undefined }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Error generando rutina')
       setPlan(data.days)
-      setSavedSlug(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
@@ -77,10 +101,147 @@ export default function TrainingGenerator({ client }: { client: Client }) {
     }
   }
 
+  function updateExercise(dayKey: string, index: number, field: string, value: string | number) {
+    setPlan(prev => {
+      if (!prev) return prev
+      const day = prev[dayKey as keyof TrainingPlanDays]
+      if (!day) return prev
+      const exs = [...day.exercises]
+      exs[index] = { ...exs[index], [field]: value }
+      return { ...prev, [dayKey]: { ...day, exercises: exs } }
+    })
+    setSavedSlug(null)
+  }
+
+  function moveExercise(dayKey: string, index: number, dir: 'up' | 'down') {
+    setPlan(prev => {
+      if (!prev) return prev
+      const day = prev[dayKey as keyof TrainingPlanDays]
+      if (!day) return prev
+      const exs = [...day.exercises]
+      const newIdx = dir === 'up' ? index - 1 : index + 1
+      if (newIdx < 0 || newIdx >= exs.length) return prev
+      ;[exs[index], exs[newIdx]] = [exs[newIdx], exs[index]]
+      return { ...prev, [dayKey]: { ...day, exercises: exs } }
+    })
+    setSavedSlug(null)
+  }
+
+  function deleteExercise(dayKey: string, index: number) {
+    setPlan(prev => {
+      if (!prev) return prev
+      const day = prev[dayKey as keyof TrainingPlanDays]
+      if (!day) return prev
+      return { ...prev, [dayKey]: { ...day, exercises: day.exercises.filter((_, i) => i !== index) } }
+    })
+    setSavedSlug(null)
+  }
+
+  function renameDay(dayKey: string, newName: string) {
+    setPlan(prev => {
+      if (!prev) return prev
+      const day = prev[dayKey as keyof TrainingPlanDays]
+      if (!day) return prev
+      return { ...prev, [dayKey]: { ...day, name: newName } }
+    })
+    setSavedSlug(null)
+  }
+
+  async function openCopyModal() {
+    setShowCopyModal(true)
+    setCopyError(null)
+    setCopySuccess(false)
+    if (clients.length === 0) {
+      try {
+        const res = await fetch('/api/list-clients')
+        if (res.ok) {
+          const data = await res.json()
+          setClients((data.clients ?? []).filter((c: { id: string }) => c.id !== client.id))
+        }
+      } catch {}
+    }
+  }
+
+  async function copyToClient() {
+    if (!plan || !copyTargetId) return
+    setCopying(true)
+    setCopyError(null)
+    try {
+      const res = await fetch('/api/copy-training-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          days: plan,
+          source_client_id: client.id,
+          source_client_name: client.name,
+          target_client_id: copyTargetId,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Error copiando')
+      setCopySuccess(true)
+      setTimeout(() => setShowCopyModal(false), 1500)
+    } catch (err) {
+      setCopyError(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setCopying(false)
+    }
+  }
+
+  async function approveCopy() {
+    if (!pendingCopy) return
+    setApproving(true)
+    try {
+      const res = await fetch('/api/approve-training-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan_id: pendingCopy.id, client_id: client.id }),
+      })
+      if (!res.ok) throw new Error('Error aprobando')
+      setPlan(pendingCopy.days)
+      setPendingCopy(null)
+      setSavedSlug(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error aprobando rutina')
+    } finally {
+      setApproving(false)
+    }
+  }
+
   const trainingDays = DAYS_ES.filter((d) => plan?.[d])
 
   return (
     <div className="space-y-5 max-w-3xl">
+      {pendingCopy && (
+        <div className="bg-we-carbon border border-we-orange/40 rounded-card p-4 flex items-center justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-bold text-we-orange tracking-widest uppercase mb-0.5">
+              Rutina pendiente de aprobación
+            </div>
+            <div className="text-sm text-we-white">
+              Copiada desde <span className="font-bold">{pendingCopy.sourceName}</span>. ¿Activar para este cliente?
+            </div>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              type="button"
+              onClick={approveCopy}
+              disabled={approving}
+              className="h-9 px-4 bg-we-orange hover:bg-we-orange-dark disabled:opacity-50 text-white font-bold text-xs tracking-widest uppercase rounded-btn transition-colors"
+            >
+              {approving ? '...' : 'APROBAR'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPendingCopy(null)}
+              className="h-9 px-3 border border-we-carbon-3 text-we-gray-mid hover:text-we-white text-xs rounded-btn transition-colors"
+            >
+              IGNORAR
+            </button>
+          </div>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={generatePlan}
@@ -98,11 +259,36 @@ export default function TrainingGenerator({ client }: { client: Client }) {
 
       {plan && (
         <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] text-we-gray-mid">
+              {trainingDays.length} días · {trainingDays.reduce((a, d) => a + (plan[d]?.exercises.length ?? 0), 0)} ejercicios
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditMode(e => !e)}
+              className={`text-[11px] font-bold px-3 py-1.5 rounded-btn border transition-colors ${
+                editMode
+                  ? 'bg-we-orange border-we-orange text-white'
+                  : 'border-we-carbon-3 text-we-gray-mid hover:border-we-orange hover:text-we-orange'
+              }`}
+            >
+              {editMode ? '✓ MODO EDICIÓN ACTIVO' : '✏️ EDITAR MANUALMENTE'}
+            </button>
+          </div>
+
           {trainingDays.map((day) => (
-            <DayTrainingView key={day} day={plan[day]!} dayName={day} />
+            <DayTrainingView
+              key={day}
+              day={plan[day]!}
+              dayName={day}
+              editMode={editMode}
+              onUpdateExercise={(i, f, v) => updateExercise(day, i, f, v)}
+              onMoveExercise={(i, dir) => moveExercise(day, i, dir)}
+              onDeleteExercise={(i) => deleteExercise(day, i)}
+              onRenameDay={(name) => renameDay(day, name)}
+            />
           ))}
 
-          {/* Edit with AI */}
           <div className="bg-we-carbon border border-we-carbon-2 rounded-card p-4 space-y-3">
             <div className="text-[10px] font-bold text-we-white tracking-[2px] uppercase">
               Editar rutina con IA
@@ -128,9 +314,9 @@ export default function TrainingGenerator({ client }: { client: Client }) {
             </div>
           </div>
 
-          <div className="pt-2">
+          <div className="flex gap-2 pt-2">
             {savedSlug ? (
-              <div className="flex items-center gap-3">
+              <>
                 <a
                   href={`/plan/${savedSlug}`}
                   target="_blank"
@@ -154,17 +340,76 @@ export default function TrainingGenerator({ client }: { client: Client }) {
                 >
                   COPIAR
                 </button>
-              </div>
+                <button
+                  type="button"
+                  onClick={openCopyModal}
+                  className="h-12 px-4 border border-we-carbon-3 text-we-gray-mid hover:text-we-orange text-xs font-bold tracking-widest uppercase rounded-card transition-colors"
+                >
+                  → OTRO CLIENTE
+                </button>
+              </>
             ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={savePlan}
+                  disabled={saving}
+                  className="flex-1 h-12 border border-we-orange text-we-orange hover:bg-we-orange/10 disabled:opacity-50 font-bold text-sm tracking-widest uppercase rounded-card transition-colors"
+                >
+                  {saving ? 'GUARDANDO...' : 'GUARDAR RUTINA + GENERAR LINK'}
+                </button>
+                <button
+                  type="button"
+                  onClick={openCopyModal}
+                  className="h-12 px-4 border border-we-carbon-3 text-we-gray-mid hover:text-we-orange text-xs font-bold tracking-widest uppercase rounded-card transition-colors"
+                >
+                  → OTRO CLIENTE
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showCopyModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-we-carbon border border-we-carbon-2 rounded-card p-6 w-full max-w-sm space-y-4">
+            <div className="text-[11px] font-bold text-we-white tracking-[2px] uppercase">
+              Copiar rutina a otro cliente
+            </div>
+            {clients.length === 0 ? (
+              <p className="text-we-gray-mid text-sm">Cargando clientes...</p>
+            ) : (
+              <select
+                value={copyTargetId}
+                onChange={(e) => setCopyTargetId(e.target.value)}
+                className="w-full h-10 bg-we-carbon-1 border border-we-carbon-3 rounded-btn px-3 text-sm text-we-white focus:outline-none focus:border-we-orange"
+              >
+                <option value="">Selecciona un cliente...</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            )}
+            {copyError && <div className="text-we-danger text-xs">{copyError}</div>}
+            {copySuccess && <div className="text-green-400 text-xs">✓ Rutina enviada. El cliente la verá al abrir su pestaña de entrenamiento.</div>}
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={savePlan}
-                disabled={saving}
-                className="w-full h-12 border border-we-orange text-we-orange hover:bg-we-orange/10 disabled:opacity-50 font-bold text-sm tracking-widest uppercase rounded-card transition-colors"
+                onClick={copyToClient}
+                disabled={copying || !copyTargetId}
+                className="flex-1 h-10 bg-we-orange hover:bg-we-orange-dark disabled:opacity-40 text-white font-bold text-xs tracking-widest uppercase rounded-btn transition-colors"
               >
-                {saving ? 'GUARDANDO...' : 'GUARDAR RUTINA + GENERAR LINK'}
+                {copying ? '...' : 'COPIAR RUTINA'}
               </button>
-            )}
+              <button
+                type="button"
+                onClick={() => setShowCopyModal(false)}
+                className="h-10 px-4 border border-we-carbon-3 text-we-gray-mid text-xs rounded-btn hover:text-we-white transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}
