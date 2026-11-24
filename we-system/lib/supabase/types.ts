@@ -95,8 +95,9 @@ export interface Exercise {
   reps: string
   rest_s: number
   weight: string
-  gif_url: string
-  notes: string
+  gif_url?: string
+  notes?: string
+  superset_group?: string
 }
 
 export interface TrainingDay {
