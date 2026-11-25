@@ -11,13 +11,35 @@ interface PendingCopy {
   sourceName: string
 }
 
+interface SavedPlan {
+  id: string
+  name: string | null
+  days: TrainingPlanDays
+  created_at: string
+  public_slug: string | null
+  status: 'draft' | 'sent'
+}
+
 interface Props {
   client: Client
   previousPlan?: TrainingPlanDays | null
   pendingCopyPlan?: PendingCopy | null
+  savedPlans?: SavedPlan[]
 }
 
-export default function TrainingGenerator({ client, previousPlan, pendingCopyPlan }: Props) {
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('es-DO', { day: 'numeric', month: 'short' })
+}
+
+function planSummary(days: TrainingPlanDays) {
+  const DAYS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
+  const activeDays = DAYS.filter(d => days[d])
+  const names = activeDays.map(d => days[d]!.name).filter(Boolean)
+  const totalExercises = activeDays.reduce((s, d) => s + (days[d]?.exercises.length ?? 0), 0)
+  return { names, totalExercises, dayCount: activeDays.length }
+}
+
+export default function TrainingGenerator({ client, previousPlan, pendingCopyPlan, savedPlans: initialSavedPlans }: Props) {
   const [plan, setPlan] = useState<TrainingPlanDays | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -36,6 +58,9 @@ export default function TrainingGenerator({ client, previousPlan, pendingCopyPla
 
   const [pendingCopy, setPendingCopy] = useState<PendingCopy | null>(pendingCopyPlan ?? null)
   const [approving, setApproving] = useState(false)
+
+  const [savedPlans, setSavedPlans] = useState<SavedPlan[]>(initialSavedPlans ?? [])
+  const [showAllPlans, setShowAllPlans] = useState(false)
 
   async function generatePlan() {
     setLoading(true)
@@ -94,10 +119,53 @@ export default function TrainingGenerator({ client, previousPlan, pendingCopyPla
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Error guardando rutina')
       setSavedSlug(data.public_slug)
+      setSavedPlans(prev => [{
+        id: data.id,
+        name: null,
+        days: plan,
+        created_at: new Date().toISOString(),
+        public_slug: data.public_slug,
+        status: 'draft',
+      }, ...prev])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setSaving(false)
+    }
+  }
+
+  function loadSavedPlan(p: SavedPlan) {
+    setPlan(p.days)
+    setSavedSlug(p.public_slug)
+    setEditMode(false)
+  }
+
+  async function assignPlan(p: SavedPlan) {
+    try {
+      const res = await fetch('/api/update-plan-status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: p.id, status: 'sent' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Error')
+      setSavedPlans(prev => prev.map(sp => sp.id === p.id ? { ...sp, status: 'sent' } : sp))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error asignando rutina')
+    }
+  }
+
+  async function deleteSavedPlan(id: string) {
+    try {
+      const res = await fetch('/api/delete-training-plan', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      if (!res.ok) throw new Error('Error')
+      setSavedPlans(prev => prev.filter(p => p.id !== id))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error eliminando rutina')
     }
   }
 
@@ -254,6 +322,90 @@ export default function TrainingGenerator({ client, previousPlan, pendingCopyPla
       {error && (
         <div className="bg-we-danger/10 border border-we-danger/30 rounded-card p-4 text-we-danger text-sm">
           {error}
+        </div>
+      )}
+
+      {savedPlans.length > 0 && (
+        <div className="bg-we-carbon border border-we-carbon-2 rounded-card overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-we-carbon-2">
+            <div className="text-[11px] font-bold text-we-white tracking-[2px] uppercase">
+              Borradores guardados ({savedPlans.length})
+            </div>
+            {savedPlans.length > 3 && (
+              <button
+                type="button"
+                onClick={() => setShowAllPlans(s => !s)}
+                className="text-[10px] text-we-gray-mid hover:text-we-white transition-colors"
+              >
+                {showAllPlans ? 'Ver menos' : `Ver todos (${savedPlans.length})`}
+              </button>
+            )}
+          </div>
+          <div className="divide-y divide-we-carbon-2">
+            {(showAllPlans ? savedPlans : savedPlans.slice(0, 3)).map(p => {
+              const { names, totalExercises, dayCount } = planSummary(p.days)
+              const sent = p.status === 'sent'
+              return (
+                <div key={p.id} className="px-5 py-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <span className="text-[10px] text-we-gray-low">{fmtDate(p.created_at)}</span>
+                      {sent ? (
+                        <span className="text-[9px] font-bold text-we-orange border border-we-orange/40 rounded px-1.5 py-0.5 tracking-widest">
+                          ASIGNADO
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-bold text-we-gray-mid border border-we-carbon-3 rounded px-1.5 py-0.5 tracking-widest">
+                          BORRADOR
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-we-white truncate">
+                      {names.slice(0, 4).join(' · ')}{names.length > 4 ? ` +${names.length - 4}` : ''}
+                    </div>
+                    <div className="text-[10px] text-we-gray-low">
+                      {dayCount} días · {totalExercises} ejercicios
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => loadSavedPlan(p)}
+                      className="h-7 px-2.5 text-[9px] font-bold border border-we-carbon-3 text-we-gray-mid hover:text-we-white hover:border-we-white rounded transition-colors tracking-widest"
+                    >
+                      CARGAR
+                    </button>
+                    {!sent ? (
+                      <button
+                        type="button"
+                        onClick={() => assignPlan(p)}
+                        className="h-7 px-2.5 text-[9px] font-bold border border-we-orange/60 text-we-orange hover:bg-we-orange/10 rounded transition-colors tracking-widest"
+                      >
+                        ASIGNAR
+                      </button>
+                    ) : p.public_slug ? (
+                      <a
+                        href={`/plan/${p.public_slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="h-7 px-2.5 text-[9px] font-bold border border-we-carbon-3 text-we-gray-mid hover:text-we-white rounded transition-colors tracking-widest flex items-center"
+                      >
+                        VER →
+                      </a>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => deleteSavedPlan(p.id)}
+                      className="h-7 px-2 text-[13px] text-we-gray-low hover:text-we-danger rounded transition-colors leading-none"
+                      title="Eliminar borrador"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 

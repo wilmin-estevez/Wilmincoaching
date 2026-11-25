@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import TrainingGenerator from '@/components/training/TrainingGenerator'
-import type { Client, TrainingPlanDays } from '@/lib/supabase/types'
+import type { Client, TrainingPlanDays, PlanStatus } from '@/lib/supabase/types'
 
 export default async function EntrenamientoPage({
   params,
@@ -14,10 +14,10 @@ export default async function EntrenamientoPage({
     supabase.from('clients').select('*').eq('id', id).single(),
     supabase
       .from('training_plans')
-      .select('id, name, days, created_at, public_slug')
+      .select('id, name, days, created_at, public_slug, status')
       .eq('client_id', id)
       .order('created_at', { ascending: false })
-      .limit(5),
+      .limit(20),
   ])
 
   const client = clientData as unknown as Client | null
@@ -25,13 +25,16 @@ export default async function EntrenamientoPage({
     return <p className="text-we-gray-mid text-sm">Cliente no encontrado.</p>
   }
 
-  const plans = (plansData ?? []) as unknown as Array<{
+  type RawPlan = {
     id: string
     name: string | null
     days: TrainingPlanDays
     created_at: string
     public_slug: string | null
-  }>
+    status: PlanStatus
+  }
+
+  const plans = (plansData ?? []) as unknown as RawPlan[]
 
   const previousPlan = plans.find(p => !p.name?.startsWith('__copy_pending__'))?.days ?? null
 
@@ -42,6 +45,8 @@ export default async function EntrenamientoPage({
     pendingCopySourceName = parts[2] ? decodeURIComponent(parts[2]) : 'otro cliente'
   }
 
+  const savedPlans = plans.filter(p => !p.name?.startsWith('__copy_pending__'))
+
   return (
     <TrainingGenerator
       client={client}
@@ -51,6 +56,7 @@ export default async function EntrenamientoPage({
           ? { id: pendingCopyPlan.id, days: pendingCopyPlan.days, sourceName: pendingCopySourceName ?? 'otro cliente' }
           : null
       }
+      savedPlans={savedPlans}
     />
   )
 }
