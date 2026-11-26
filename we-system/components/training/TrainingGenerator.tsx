@@ -27,13 +27,14 @@ interface Props {
   savedPlans?: SavedPlan[]
 }
 
+const PLAN_DAYS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
+
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-DO', { day: 'numeric', month: 'short' })
 }
 
 function planSummary(days: TrainingPlanDays) {
-  const DAYS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
-  const activeDays = DAYS.filter(d => days[d])
+  const activeDays = PLAN_DAYS.filter(d => days[d])
   const names = activeDays.map(d => days[d]!.name).filter(Boolean)
   const totalExercises = activeDays.reduce((s, d) => s + (days[d]?.exercises.length ?? 0), 0)
   return { names, totalExercises, dayCount: activeDays.length }
@@ -61,6 +62,11 @@ export default function TrainingGenerator({ client, previousPlan, pendingCopyPla
 
   const [savedPlans, setSavedPlans] = useState<SavedPlan[]>(initialSavedPlans ?? [])
   const [showAllPlans, setShowAllPlans] = useState(false)
+  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null)
+
+  function toggleExpand(id: string) {
+    setExpandedPlanId(prev => prev === id ? null : id)
+  }
 
   async function generatePlan() {
     setLoading(true)
@@ -345,63 +351,101 @@ export default function TrainingGenerator({ client, previousPlan, pendingCopyPla
             {(showAllPlans ? savedPlans : savedPlans.slice(0, 3)).map(p => {
               const { names, totalExercises, dayCount } = planSummary(p.days)
               const sent = p.status === 'sent'
+              const isExpanded = expandedPlanId === p.id
               return (
-                <div key={p.id} className="px-5 py-3 flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      <span className="text-[10px] text-we-gray-low">{fmtDate(p.created_at)}</span>
-                      {sent ? (
-                        <span className="text-[9px] font-bold text-we-orange border border-we-orange/40 rounded px-1.5 py-0.5 tracking-widest">
-                          ASIGNADO
-                        </span>
-                      ) : (
-                        <span className="text-[9px] font-bold text-we-gray-mid border border-we-carbon-3 rounded px-1.5 py-0.5 tracking-widest">
-                          BORRADOR
-                        </span>
-                      )}
+                <div key={p.id}>
+                  <div
+                    className="px-5 py-3 flex items-center gap-3 cursor-pointer hover:bg-we-carbon-1/40 transition-colors"
+                    onClick={() => toggleExpand(p.id)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <span className="text-[10px] text-we-gray-low">{fmtDate(p.created_at)}</span>
+                        {sent ? (
+                          <span className="text-[9px] font-bold text-we-orange border border-we-orange/40 rounded px-1.5 py-0.5 tracking-widest">
+                            ASIGNADO
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold text-we-gray-mid border border-we-carbon-3 rounded px-1.5 py-0.5 tracking-widest">
+                            BORRADOR
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-we-white truncate">
+                        {names.slice(0, 4).join(' · ')}{names.length > 4 ? ` +${names.length - 4}` : ''}
+                      </div>
+                      <div className="text-[10px] text-we-gray-low">
+                        {dayCount} días · {totalExercises} ejercicios
+                      </div>
                     </div>
-                    <div className="text-[11px] text-we-white truncate">
-                      {names.slice(0, 4).join(' · ')}{names.length > 4 ? ` +${names.length - 4}` : ''}
-                    </div>
-                    <div className="text-[10px] text-we-gray-low">
-                      {dayCount} días · {totalExercises} ejercicios
-                    </div>
-                  </div>
-                  <div className="flex gap-1.5 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => loadSavedPlan(p)}
-                      className="h-7 px-2.5 text-[9px] font-bold border border-we-carbon-3 text-we-gray-mid hover:text-we-white hover:border-we-white rounded transition-colors tracking-widest"
-                    >
-                      CARGAR
-                    </button>
-                    {!sent ? (
+                    <div className="flex gap-1.5 flex-shrink-0 items-center">
+                      <span className="text-[11px] text-we-gray-low select-none">{isExpanded ? '▲' : '▼'}</span>
                       <button
                         type="button"
-                        onClick={() => assignPlan(p)}
-                        className="h-7 px-2.5 text-[9px] font-bold border border-we-orange/60 text-we-orange hover:bg-we-orange/10 rounded transition-colors tracking-widest"
+                        onClick={e => { e.stopPropagation(); loadSavedPlan(p) }}
+                        className="h-7 px-2.5 text-[9px] font-bold border border-we-carbon-3 text-we-gray-mid hover:text-we-white hover:border-we-white rounded transition-colors tracking-widest"
                       >
-                        ASIGNAR
+                        CARGAR
                       </button>
-                    ) : p.public_slug ? (
-                      <a
-                        href={`/plan/${p.public_slug}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="h-7 px-2.5 text-[9px] font-bold border border-we-carbon-3 text-we-gray-mid hover:text-we-white rounded transition-colors tracking-widest flex items-center"
+                      {!sent ? (
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); assignPlan(p) }}
+                          className="h-7 px-2.5 text-[9px] font-bold border border-we-orange/60 text-we-orange hover:bg-we-orange/10 rounded transition-colors tracking-widest"
+                        >
+                          ASIGNAR
+                        </button>
+                      ) : p.public_slug ? (
+                        <a
+                          href={`/plan/${p.public_slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="h-7 px-2.5 text-[9px] font-bold border border-we-carbon-3 text-we-gray-mid hover:text-we-white rounded transition-colors tracking-widest flex items-center"
+                        >
+                          VER →
+                        </a>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); deleteSavedPlan(p.id) }}
+                        className="h-7 px-2 text-[13px] text-we-gray-low hover:text-we-danger rounded transition-colors leading-none"
+                        title="Eliminar borrador"
                       >
-                        VER →
-                      </a>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => deleteSavedPlan(p.id)}
-                      className="h-7 px-2 text-[13px] text-we-gray-low hover:text-we-danger rounded transition-colors leading-none"
-                      title="Eliminar borrador"
-                    >
-                      ×
-                    </button>
+                        ×
+                      </button>
+                    </div>
                   </div>
+                  {isExpanded && (
+                    <div className="border-t border-we-carbon-2 bg-we-carbon-1 px-5 py-4 space-y-4">
+                      {PLAN_DAYS.filter(d => p.days[d]).map(d => (
+                        <div key={d}>
+                          <div className="text-[10px] font-bold text-we-orange tracking-[1.5px] uppercase mb-2">
+                            {p.days[d]!.name || d}
+                          </div>
+                          <div className="space-y-1.5">
+                            {p.days[d]!.exercises.map((ex, i) => (
+                              <div key={i} className="flex items-center gap-2 text-[11px]">
+                                {ex.superset_group && (
+                                  <span className="text-[9px] font-bold text-we-orange border border-we-orange/40 rounded px-1 tracking-widest">
+                                    SS-{ex.superset_group}
+                                  </span>
+                                )}
+                                <span className="text-we-white font-medium">{ex.name}</span>
+                                <span className="text-we-gray-mid">{ex.sets}×{ex.reps}</span>
+                                {ex.rest_s > 0 && (
+                                  <span className="text-we-gray-low">{ex.rest_s}s descanso</span>
+                                )}
+                                {ex.weight && ex.weight !== '0' && (
+                                  <span className="text-we-gray-low">{ex.weight}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
             })}
