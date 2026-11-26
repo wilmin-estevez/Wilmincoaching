@@ -36,7 +36,7 @@ function extractExerciseNames(plan: TrainingPlanDays): string[] {
   const names: string[] = []
   for (const day of Object.values(plan)) {
     if (day?.exercises) {
-      names.push(...day.exercises.map((e) => e.name))
+      names.push(...day.exercises.map((e: { name: string }) => e.name))
     }
   }
   return [...new Set(names)]
