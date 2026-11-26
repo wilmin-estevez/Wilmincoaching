@@ -14,7 +14,7 @@ const NAV = [
     group: 'PRINCIPAL',
     items: [
       { href: '/dashboard', label: 'Dashboard',     icon: LayoutDashboard },
-      { href: '/clients',   label: 'Asesorados',    icon: Users },
+      { href: '/clients',   label: 'Clientes',      icon: Users },
     ],
   },
   {

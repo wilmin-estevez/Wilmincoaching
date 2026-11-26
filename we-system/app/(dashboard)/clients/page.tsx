@@ -27,7 +27,7 @@ export default async function ClientsPage({ searchParams }: PageProps) {
 
   return (
     <>
-      <Topbar title="ASESORADOS" />
+      <Topbar title="CLIENTES" />
       <main className="flex-1 overflow-y-auto p-6 space-y-4">
         <div className="flex items-center justify-between">
           <ClientFilters activeStatus={status ?? 'all'} />

@@ -337,9 +337,9 @@ export default function TrainingGenerator({ client, previousPlan, pendingCopyPla
         <div className="bg-we-carbon border border-we-carbon-2 rounded-card overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3 border-b border-we-carbon-2">
             <div className="text-[11px] font-bold text-we-white tracking-[2px] uppercase">
-              Borradores guardados ({savedPlans.length})
+              Historial de rutinas ({savedPlans.length})
             </div>
-            {savedPlans.length > 3 && (
+            {savedPlans.length > 5 && (
               <button
                 type="button"
                 onClick={() => setShowAllPlans(s => !s)}
@@ -350,7 +350,7 @@ export default function TrainingGenerator({ client, previousPlan, pendingCopyPla
             )}
           </div>
           <div className="divide-y divide-we-carbon-2">
-            {(showAllPlans ? savedPlans : savedPlans.slice(0, 3)).map(p => {
+            {(showAllPlans ? savedPlans : savedPlans.slice(0, 5)).map(p => {
               const { names, totalExercises, dayCount } = planSummary(p.days)
               const sent = p.status === 'sent'
               const isExpanded = expandedPlanId === p.id
@@ -361,23 +361,20 @@ export default function TrainingGenerator({ client, previousPlan, pendingCopyPla
                     onClick={() => toggleExpand(p.id)}
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        <span className="text-[10px] text-we-gray-low">{fmtDate(p.created_at)}</span>
+                      <div className="text-[13px] font-semibold text-we-white truncate mb-0.5">
+                        {p.name && !p.name.startsWith('__') ? p.name : (names.slice(0, 3).join(' · ') || 'Programa de Entrenamiento')}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] text-we-gray-low">{dayCount} días · Generada {fmtDate(p.created_at)}</span>
                         {sent ? (
                           <span className="text-[9px] font-bold text-we-orange border border-we-orange/40 rounded px-1.5 py-0.5 tracking-widest">
-                            ASIGNADO
+                            Asignada
                           </span>
                         ) : (
                           <span className="text-[9px] font-bold text-we-gray-mid border border-we-carbon-3 rounded px-1.5 py-0.5 tracking-widest">
-                            BORRADOR
+                            Borrador
                           </span>
                         )}
-                      </div>
-                      <div className="text-[11px] text-we-white truncate">
-                        {names.slice(0, 4).join(' · ')}{names.length > 4 ? ` +${names.length - 4}` : ''}
-                      </div>
-                      <div className="text-[10px] text-we-gray-low">
-                        {dayCount} días · {totalExercises} ejercicios
                       </div>
                     </div>
                     <div className="flex gap-1.5 flex-shrink-0 items-center">
