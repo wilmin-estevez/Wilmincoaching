@@ -27,6 +27,8 @@ interface Props {
   savedPlans?: SavedPlan[]
 }
 
+const PLAN_DAYS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const
+
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-DO', { day: 'numeric', month: 'short' })
 }
